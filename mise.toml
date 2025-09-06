@@ -1,0 +1,240 @@
+[tools]
+node = "latest"
+bun = "latest"
+foundry = "latest"
+
+[vars]
+default_network = "sepolia"
+
+[tasks.install]
+description = "Install dependencies"
+alias = "i"
+run = "bun install"
+
+[tasks.dev]
+description = "Start development server"
+alias = "d"
+run = "bun run dev"
+
+[tasks.build]
+description = "Build the project"
+alias = "b"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "📦 Building project..."
+echo ""
+echo "Step 1: Building contracts..."
+forge build
+echo ""
+echo "Step 2: Building Next.js app..."
+bun run build
+echo ""
+echo "✅ Build complete!"
+'''
+
+[tasks.lint]
+description = "Run linter"
+alias = "l"
+run = "bun run lint"
+
+[tasks.format]
+description = "Format code with biome"
+alias = "fmt"
+run = "bunx biome format --write ."
+
+[tasks.typecheck]
+description = "Run TypeScript type check"
+alias = "tc"
+run = "bunx tsc --noEmit"
+
+[tasks.check]
+description = "Run format, lint, and typecheck with biome"
+alias = "k"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Running code checks with biome..."
+echo ""
+echo "Step 1: Formatting and linting with biome..."
+bunx biome check --write .
+echo "✅ Biome check complete"
+echo ""
+echo "Step 2: Type checking..."
+bunx tsc --noEmit
+echo "✅ Type checking complete"
+echo ""
+echo "🎉 All checks passed!"
+'''
+
+[tasks.check-unsafe]
+description = "Run format, lint, and typecheck with biome (unsafe mode)"
+alias = "ku"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Running code checks with biome (unsafe mode)..."
+echo ""
+echo "Step 1: Formatting and linting with biome (unsafe)..."
+bunx biome check --write --unsafe .
+echo "✅ Biome check complete"
+echo ""
+echo "Step 2: Type checking..."
+bunx tsc --noEmit
+echo "✅ Type checking complete"
+echo ""
+echo "🎉 All checks passed!"
+'''
+
+[tasks.preview]
+description = "Preview built app"
+alias = "p"
+run = "bun run preview"
+
+[tasks.up]
+description = "Update dependencies to latest versions"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "📦 Checking for outdated packages..."
+bunx npm-check-updates
+echo ""
+echo "📦 Updating package.json to latest versions..."
+bunx npm-check-updates -u
+echo ""
+echo "📦 Installing updated dependencies..."
+npm install
+echo "✅ Dependencies updated to latest versions!"
+'''
+
+[tasks.faucet]
+description = "Open Sepolia faucet in browser"
+run = "open https://sepoliafaucet.com"
+
+
+
+
+
+
+[tasks.deploy]
+description = "Deploy contracts to network"
+alias = "deploy"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+NETWORK="${1:-sepolia}"
+
+echo "🚀 Deploying contracts to $NETWORK..."
+echo ""
+echo "Step 1: Building contracts..."
+forge build
+echo ""
+echo "Step 2: Deploying contracts..."
+forge script script/Deploy.s.sol --rpc-url $NETWORK --broadcast --verify
+echo ""
+echo "✅ Deployment complete!"
+'''
+
+
+
+
+
+
+
+[tasks.test]
+description = "Run all tests with Bun"
+alias = "t"
+run = "bun test"
+
+[tasks.test-watch]
+description = "Run tests in watch mode"
+alias = "tw"
+run = "bun test --watch"
+
+[tasks.codegen-abi]
+description = "Generate TypeScript ABIs from Forge artifacts"
+alias = ["gen-abi", "abigen"]
+run = "forge build && bunx @wagmi/cli generate"
+
+
+[tasks.codegen]
+description = "Generate TypeScript types from contracts"
+alias = "gen"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🏗️  Generating types..."
+echo ""
+echo "Step 1: Building contracts..."
+forge build
+echo ""
+echo "Step 2: Generating TypeScript ABIs..."
+bunx @wagmi/cli generate
+echo ""
+echo "✅ All types generated successfully!"
+'''
+
+
+
+
+[tasks.forge-test]
+description = "Run Foundry tests"
+alias = "ft"
+run = "forge test"
+
+[tasks.forge-fmt]
+description = "Format Solidity code"
+alias = "solidity-fmt"
+run = "forge fmt"
+
+[tasks.anvil]
+description = "Start local Ethereum node"
+run = "anvil"
+
+[tasks.deploy-local]
+description = "Deploy contracts to local Anvil"
+alias = "dl"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 Deploying contracts to local Anvil..."
+echo ""
+echo "Step 1: Building contracts..."
+cd contracts && forge build
+echo ""
+echo "Step 2: Deploying to Anvil (localhost:8545)..."
+cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+echo ""
+echo "✅ Local deployment complete!"
+'''
+
+[tasks.local]
+description = "Start Anvil and frontend for local development"
+alias = "loc"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 Starting local development environment..."
+echo ""
+
+# Kill any existing anvil processes
+if pgrep -f anvil > /dev/null; then
+    echo "Stopping existing Anvil processes..."
+    pkill -f anvil
+    sleep 2
+fi
+
+echo "Starting Anvil in background..."
+anvil &
+ANVIL_PID=$!
+echo "Anvil started with PID: $ANVIL_PID"
+echo ""
+sleep 3
+echo "Deploying contracts..."
+cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+echo ""
+echo "Starting frontend..."
+echo "Press Ctrl+C to stop both Anvil and frontend"
+trap "kill $ANVIL_PID 2>/dev/null" EXIT
+bun run dev
+'''
