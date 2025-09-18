@@ -1,0 +1,30 @@
+[toolchain]
+
+[workspace]
+types = "src/idl/"
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+owned_counter = "4VaxisFFjxbjD6gNDBjid7gaptQvNp1tpRTgGS5YfC22"
+shared_counter = "5v1W7sNkrufDdRND19rxtMWmLXEXWbwTRy4mq7Dk3B6m"
+
+[programs.devnet]
+owned_counter = "4VaxisFFjxbjD6gNDBjid7gaptQvNp1tpRTgGS5YfC22"
+shared_counter = "5v1W7sNkrufDdRND19rxtMWmLXEXWbwTRy4mq7Dk3B6m"
+
+[programs.testnet]
+owned_counter = "4VaxisFFjxbjD6gNDBjid7gaptQvNp1tpRTgGS5YfC22"
+shared_counter = "5v1W7sNkrufDdRND19rxtMWmLXEXWbwTRy4mq7Dk3B6m"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "bun test"

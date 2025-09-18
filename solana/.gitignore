@@ -1,0 +1,48 @@
+# Node / Bun dependencies
+node_modules/
+package-lock.json
+bun.lock
+
+# Next.js build outputs
+.next/
+.next-dev/
+dist/
+out/
+**/build/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local.json
+
+# Anchor / Solana artifacts
+target/
+.anchor/
+test-ledger/
+programs/*/target/
+
+# Auto-generated IDL files
+src/idl/
+
+# Logs and caches
+node_modules/.cache/
+
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
