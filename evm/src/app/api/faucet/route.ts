@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Check if Anvil is running
     try {
       await publicClient.getChainId();
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json(
         { error: "Anvil is not running. Please start Anvil first." },
         { status: 503 },
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Wait for transaction confirmation
-    const receipt = await publicClient.waitForTransactionReceipt({
+    await publicClient.waitForTransactionReceipt({
       hash: txHash,
     });
 
@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
       amount: "10 ETH",
     });
   } catch (error) {
-    console.error("Faucet API error:", error);
     return NextResponse.json(
       {
         error: "Failed to send test ETH",

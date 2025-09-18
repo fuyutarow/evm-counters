@@ -5,6 +5,11 @@ foundry = "latest"
 
 [vars]
 default_network = "sepolia"
+gas_budget = "100000000"
+
+# ===========================
+# 🚀 DEVELOPMENT
+# ===========================
 
 [tasks.install]
 description = "Install dependencies"
@@ -70,9 +75,27 @@ echo "✅ Build complete!"
 '''
 
 [tasks.lint]
-description = "Run linter"
+description = "Run all linters (Biome + ESLint + TypeScript)"
 alias = "l"
-run = "bun run lint"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Running all linters..."
+echo ""
+echo "Step 1: Biome check..."
+bunx biome check .
+echo "✅ Biome passed"
+echo ""
+echo "Step 2: ESLint check..."
+npx eslint . --ext .ts,.tsx --max-warnings 0
+echo "✅ ESLint passed"
+echo ""
+echo "Step 3: TypeScript check..."
+bunx tsc --noEmit
+echo "✅ TypeScript passed"
+echo ""
+echo "🎉 All checks passed!"
+'''
 
 [tasks.format]
 description = "Format code with biome"
@@ -84,25 +107,88 @@ description = "Run TypeScript type check"
 alias = "tc"
 run = "bunx tsc --noEmit"
 
-[tasks.check]
-description = "Run format, lint, and typecheck with biome"
-alias = "k"
+# ===========================
+# 🔍 LINT (チェックのみ)
+# ===========================
+
+[tasks.lint-biome]
+description = "Run Biome check only"
+alias = "lb"
+run = "bunx biome check ."
+
+[tasks.lint-eslint]
+description = "Run ESLint check only"
+alias = "le"
+run = "npx eslint . --ext .ts,.tsx --max-warnings 0"
+
+[tasks.lint-types]
+description = "Run TypeScript check only"
+alias = "lt"
+run = "bunx tsc --noEmit"
+
+
+# ===========================
+# 🔧 FIX (自動修正)
+# ===========================
+
+[tasks.fix]
+description = "Fix all auto-fixable issues (Biome unsafe + ESLint) + TypeScript check"
+alias = "f"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🔍 Running code checks with biome..."
+echo "🔧 Fixing all auto-fixable issues..."
 echo ""
-echo "Step 1: Formatting and linting with biome..."
-bunx biome check --write .
-echo "✅ Biome check complete"
+echo "Step 1: Biome unsafe fix..."
+bunx biome check --write --unsafe .
+echo "✅ Biome unsafe fixed"
 echo ""
-echo "Step 2: Type checking..."
+echo "Step 2: ESLint fix..."
+npx eslint src --ext .ts,.tsx --fix || true
+echo "✅ ESLint fixed"
+echo ""
+echo "Step 3: TypeScript check..."
 bunx tsc --noEmit
-echo "✅ Type checking complete"
+echo "✅ TypeScript passed"
 echo ""
-echo "🎉 All checks passed!"
+echo "🎉 All fixable issues resolved!"
 '''
 
+[tasks.fix-biome]
+description = "Fix with Biome only"
+alias = "fb"
+run = "bunx biome check --write ."
+
+[tasks.fix-eslint]
+description = "Fix with ESLint only"
+alias = "fe"
+run = "npx eslint src --ext .ts,.tsx --fix"
+
+[tasks.fix-unsafe]
+description = "Fix with Biome unsafe mode (aggressive)"
+alias = "fu"
+run = "bunx biome check --write --unsafe ."
+
+[tasks.clean]
+description = "Clean all build artifacts and caches"
+alias = "c"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 Cleaning all build artifacts..."
+rip .next || true
+rip .next-dev || true
+rip tsconfig.tsbuildinfo || true
+rip dist || true
+rip contracts/out || true
+rip contracts/cache || true
+rip contracts/broadcast || true
+echo "✅ All cleaned!"
+'''
+
+# ===========================
+# 📦 BUILD & DEPLOY
+# ===========================
 
 [tasks.preview]
 description = "Preview built app"
@@ -135,7 +221,7 @@ run = "open https://sepoliafaucet.com"
 
 
 [tasks.deploy]
-description = "Deploy contracts to network"
+description = "Deploy contracts to network | 引数: [NETWORK] (default: sepolia)"
 alias = "deploy"
 run = '''
 #!/usr/bin/env bash
@@ -145,19 +231,41 @@ NETWORK="${1:-sepolia}"
 echo "🚀 Deploying contracts to $NETWORK..."
 echo ""
 echo "Step 1: Building contracts..."
-forge build
+cd contracts && forge build
 echo ""
 echo "Step 2: Deploying contracts..."
 forge script script/Deploy.s.sol --rpc-url $NETWORK --broadcast --verify
 echo ""
 echo "✅ Deployment complete!"
+echo ""
+echo "🔄 Next steps:"
+echo "  1. Update contract addresses in frontend config"
+echo "  2. mise run codegen    # Update TypeScript ABIs"
+echo "  3. mise run dev        # Restart development server"
 '''
 
+# 引数: [NETWORK] (default: sepolia)
+# 機能: コントラクトのビルドとデプロイを実行
+# 対応ネットワーク: sepolia, mainnet, localhost等
+#
+# 使用例:
+# mise run deploy sepolia    # Sepoliaにデプロイ
+# mise run deploy mainnet    # Mainnetにデプロイ
+#
+# デプロイ後の作業:
+# 1. フロントエンドの設定でコントラクトアドレスを更新
+# 2. mise run codegen  # TypeScript ABI定義の再生成
+# 3. mise run dev      # 開発サーバー再起動
 
 
 
 
 
+
+
+# ===========================
+# 🧪 TESTING
+# ===========================
 
 [tasks.test]
 description = "Run all tests with Bun"
@@ -184,10 +292,10 @@ set -euo pipefail
 echo "🏗️  Generating types..."
 echo ""
 echo "Step 1: Building contracts..."
-forge build
+cd contracts && forge build
 echo ""
 echo "Step 2: Generating TypeScript ABIs..."
-bunx @wagmi/cli generate
+cd .. && bunx @wagmi/cli generate
 echo ""
 echo "✅ All types generated successfully!"
 '''
@@ -195,15 +303,19 @@ echo "✅ All types generated successfully!"
 
 
 
+# ===========================
+# ⚒️ FOUNDRY TOOLS
+# ===========================
+
 [tasks.forge-test]
 description = "Run Foundry tests"
 alias = "ft"
-run = "forge test"
+run = "cd contracts && forge test"
 
 [tasks.forge-fmt]
 description = "Format Solidity code"
 alias = "solidity-fmt"
-run = "forge fmt"
+run = "cd contracts && forge fmt"
 
 [tasks.anvil]
 description = "Start local Ethereum node"

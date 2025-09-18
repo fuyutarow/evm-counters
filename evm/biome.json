@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.3/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
   "linter": {
     "enabled": true,
     "rules": {
@@ -11,7 +11,12 @@
             "syntax": "shorthand"
           }
         },
-        "useImportType": "error",
+        "useImportType": {
+          "level": "error",
+          "options": {
+            "style": "inlineType"
+          }
+        },
         "useExportType": "error",
         "noParameterAssign": "warn",
         "noInferrableTypes": "warn",
@@ -23,21 +28,22 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noImplicitAnyLet": "error"
+        "noImplicitAnyLet": "error",
+        "noConsole": "error"
       },
       "complexity": {
         "noBannedTypes": "error",
         "noUselessTypeConstraint": "error",
-        "noUselessConstructor": "warn",
-        "noUselessCatch": "warn",
+        "noUselessConstructor": "error",
+        "noUselessCatch": "error",
         "noStaticOnlyClass": "error",
-        "noForEach": "warn",
+        "noForEach": "error",
         "useOptionalChain": "error",
         "noUselessTernary": "error"
       },
       "correctness": {
         "noUnusedVariables": {
-          "level": "warn",
+          "level": "error",
           "options": {
             "ignoreRestSiblings": true
           }
@@ -59,8 +65,8 @@
         "useValidAriaValues": "error"
       },
       "performance": {
-        "noAccumulatingSpread": "warn",
-        "noDelete": "off"
+        "noAccumulatingSpread": "error",
+        "noDelete": "warn"
       }
     }
   },

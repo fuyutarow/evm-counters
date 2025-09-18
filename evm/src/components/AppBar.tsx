@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Droplets } from "lucide-react";
+import { Droplets, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -38,8 +38,7 @@ export function AppBar() {
 
       const data = await response.json();
       toast.success(`Sent 10 ETH to your wallet! TX: ${data.txHash.slice(0, 10)}...`);
-    } catch (error) {
-      console.error("Faucet error:", error);
+    } catch (_error) {
       toast.error("Failed to send test ETH. Make sure Anvil is running.");
     } finally {
       setIsFaucetLoading(false);

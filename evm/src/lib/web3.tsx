@@ -1,7 +1,7 @@
 "use client";
 
 import { createAppKit } from "@reown/appkit";
-import type { AppKitNetwork } from "@reown/appkit/networks";
+import { type AppKitNetwork } from "@reown/appkit/networks";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
