@@ -9,28 +9,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useSharedCounter } from "@/hooks/useSharedCounter";
+import { useCounter } from "@/hooks/useCounter";
 
 export default function SharedCounterPage() {
   const [newValue, setNewValue] = useState<string>("");
-  const { count, increment, setValue, isIncrementPending, isSetValuePending } = useSharedCounter();
+  const counter = useCounter();
+  const { data: count } = counter.shared.useValue();
+  const { increment, setValue, isPending } = counter.shared;
   const { isConnected } = useAccount();
 
   const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-  const isPending = isIncrementPending || isSetValuePending;
+  const isAnyPending = isPending.increment || isPending.setValue;
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
   }
 
-  function handleSetValue() {
+  async function handleSetValue() {
     const value = Number.parseInt(newValue, 10);
     if (Number.isNaN(value)) {
       toast.error("Please enter a valid number");
       return;
     }
-    setValue(BigInt(value));
+    await setValue(BigInt(value));
     setNewValue("");
   }
 
@@ -114,7 +116,7 @@ export default function SharedCounterPage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="font-bold text-6xl">{count}</div>
+                  <div className="font-bold text-6xl">{count?.toString() ?? "0"}</div>
                   <div className="text-muted-foreground text-sm">current value</div>
                 </div>
               </div>
@@ -124,7 +126,12 @@ export default function SharedCounterPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Increment */}
                 <div className="space-y-2">
-                  <Button onClick={increment} disabled={isPending} className="w-full" size="lg">
+                  <Button
+                    onClick={() => increment()}
+                    disabled={isAnyPending}
+                    className="w-full"
+                    size="lg"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Increment
                   </Button>
@@ -139,11 +146,11 @@ export default function SharedCounterPage() {
                       placeholder="New value"
                       value={newValue}
                       onChange={(e) => setNewValue(e.target.value)}
-                      disabled={isPending}
+                      disabled={isAnyPending}
                     />
                     <Button
                       onClick={handleSetValue}
-                      disabled={isPending || !newValue}
+                      disabled={isAnyPending || !newValue}
                       size="default"
                     >
                       Set

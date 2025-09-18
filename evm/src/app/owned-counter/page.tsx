@@ -9,29 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useOwnedCounter } from "@/hooks/useOwnedCounter";
+import { useCounter } from "@/hooks/useCounter";
 
 export default function OwnedCounterPage() {
   const [newValue, setNewValue] = useState<string>("");
-  const { count, owner, isOwner, increment, setValue, isIncrementPending, isSetValuePending } =
-    useOwnedCounter();
+  const counter = useCounter();
+  const { data: count } = counter.owned.useValue();
+  const { data: owner } = counter.owned.useOwner();
+  const { isOwner, increment, setValue, isPending } = counter.owned;
   const { isConnected } = useAccount();
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const isPending = isIncrementPending || isSetValuePending;
+  const isAnyPending = isPending.increment || isPending.setValue;
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
   }
 
-  function handleSetValue() {
+  async function handleSetValue() {
     const value = Number.parseInt(newValue, 10);
     if (Number.isNaN(value)) {
       toast.error("Please enter a valid number");
       return;
     }
-    setValue(BigInt(value));
+    await setValue(BigInt(value));
     setNewValue("");
   }
 
@@ -119,7 +121,7 @@ export default function OwnedCounterPage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="font-bold text-6xl">{count}</div>
+                  <div className="font-bold text-6xl">{count?.toString() ?? "0"}</div>
                   <div className="text-muted-foreground text-sm">current value</div>
                 </div>
               </div>
@@ -130,8 +132,8 @@ export default function OwnedCounterPage() {
                 {/* Increment */}
                 <div className="space-y-2">
                   <Button
-                    onClick={increment}
-                    disabled={!isOwner || isPending}
+                    onClick={() => increment()}
+                    disabled={!isOwner || isAnyPending}
                     className="w-full"
                     size="lg"
                   >
@@ -153,11 +155,11 @@ export default function OwnedCounterPage() {
                       placeholder="New value"
                       value={newValue}
                       onChange={(e) => setNewValue(e.target.value)}
-                      disabled={!isOwner || isPending}
+                      disabled={!isOwner || isAnyPending}
                     />
                     <Button
                       onClick={handleSetValue}
-                      disabled={!isOwner || isPending || !newValue}
+                      disabled={!isOwner || isAnyPending || !newValue}
                       size="default"
                     >
                       Set
