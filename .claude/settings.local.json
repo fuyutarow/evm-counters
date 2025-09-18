@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__filesystem__edit_file",
+      "Bash(rip:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm install:*)",
+      "Bash(npx:*)",
+      "mcp__serena__search_for_pattern",
+      "mcp__context7__get-library-docs",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_file",
+      "mcp__context7__get-library-docs",
+      "Bash(rm:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__find_symbol",
+      "Bash(mise run:*)",
+      "mcp__serena__replace_symbol_body",
+      "mcp__serena__insert_after_symbol",
+      "WebSearch",
+      "Bash(sui move test:*)",
+      "WebFetch(domain:docs.sui.io)",
+      "Bash(bun test:*)",
+      "Bash(timeout:*)",
+      "Bash(npm test:*)",
+      "Bash(git checkout:*)",
+      "Bash(sui move:*)",
+      "Bash(bun scripts/generate-move-types.ts:*)",
+      "mcp__serena__think_about_collected_information",
+      "Bash(mise trust:*)",
+      "Bash(forge:*)",
+      "Bash(bunx tsc:*)",
+      "WebFetch(domain:docs.reown.com)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "memory",
+    "context7",
+    "serena"
+  ]
+}
