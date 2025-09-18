@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 const Web3Providers = dynamic(
   () => import("@/lib/web3").then((mod) => ({ default: mod.Web3Providers })),
-  { ssr: false }
+  { ssr: false },
 );
 
 export function Providers({ children }: { children: React.ReactNode }) {

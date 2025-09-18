@@ -12,9 +12,45 @@ alias = "i"
 run = "bun install"
 
 [tasks.dev]
-description = "Start development server"
+description = "Start full development environment (Anvil + contracts + frontend)"
 alias = "d"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 Starting full development environment..."
+echo ""
+
+# Kill any existing anvil processes
+if pgrep -f anvil > /dev/null; then
+    echo "Stopping existing Anvil processes..."
+    pkill -f anvil
+    sleep 2
+fi
+
+echo "Starting Anvil in background..."
+anvil &
+ANVIL_PID=$!
+echo "Anvil started with PID: $ANVIL_PID"
+echo ""
+sleep 3
+echo "Deploying contracts..."
+cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+echo ""
+echo "Starting frontend..."
+echo "Press Ctrl+C to stop both Anvil and frontend"
+trap "kill $ANVIL_PID 2>/dev/null" EXIT
+cd .. && bun run dev
+'''
+
+[tasks.dev-frontend]
+description = "Start frontend development server only"
+alias = "df"
 run = "bun run dev"
+
+[tasks.dev-contracts]
+description = "Start Anvil blockchain only"
+alias = "dc"
+run = "anvil"
 
 [tasks.build]
 description = "Build the project"
@@ -67,24 +103,6 @@ echo ""
 echo "🎉 All checks passed!"
 '''
 
-[tasks.check-unsafe]
-description = "Run format, lint, and typecheck with biome (unsafe mode)"
-alias = "ku"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔍 Running code checks with biome (unsafe mode)..."
-echo ""
-echo "Step 1: Formatting and linting with biome (unsafe)..."
-bunx biome check --write --unsafe .
-echo "✅ Biome check complete"
-echo ""
-echo "Step 2: Type checking..."
-bunx tsc --noEmit
-echo "✅ Type checking complete"
-echo ""
-echo "🎉 All checks passed!"
-'''
 
 [tasks.preview]
 description = "Preview built app"
@@ -190,51 +208,3 @@ run = "forge fmt"
 [tasks.anvil]
 description = "Start local Ethereum node"
 run = "anvil"
-
-[tasks.deploy-local]
-description = "Deploy contracts to local Anvil"
-alias = "dl"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🚀 Deploying contracts to local Anvil..."
-echo ""
-echo "Step 1: Building contracts..."
-cd contracts && forge build
-echo ""
-echo "Step 2: Deploying to Anvil (localhost:8545)..."
-cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
-echo ""
-echo "✅ Local deployment complete!"
-'''
-
-[tasks.local]
-description = "Start Anvil and frontend for local development"
-alias = "loc"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🚀 Starting local development environment..."
-echo ""
-
-# Kill any existing anvil processes
-if pgrep -f anvil > /dev/null; then
-    echo "Stopping existing Anvil processes..."
-    pkill -f anvil
-    sleep 2
-fi
-
-echo "Starting Anvil in background..."
-anvil &
-ANVIL_PID=$!
-echo "Anvil started with PID: $ANVIL_PID"
-echo ""
-sleep 3
-echo "Deploying contracts..."
-cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
-echo ""
-echo "Starting frontend..."
-echo "Press Ctrl+C to stop both Anvil and frontend"
-trap "kill $ANVIL_PID 2>/dev/null" EXIT
-bun run dev
-'''
