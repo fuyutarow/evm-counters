@@ -1,30 +1,11 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// OwnedCounter
+// OwnedCounterRegistry
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const ownedCounterAbi = [
-  {
-    type: "constructor",
-    inputs: [{ name: "owner_", internalType: "address", type: "address" }],
-    stateMutability: "nonpayable",
-  },
+export const ownedCounterRegistryAbi = [
   {
     type: "function",
-    inputs: [],
-    name: "count",
-    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    inputs: [],
-    name: "getCount",
-    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    inputs: [],
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
     name: "increment",
     outputs: [],
     stateMutability: "nonpayable",
@@ -32,39 +13,60 @@ export const ownedCounterAbi = [
   {
     type: "function",
     inputs: [],
-    name: "owner",
+    name: "mint",
+    outputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    inputs: [],
+    name: "nextId",
+    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
+    name: "ownerOf",
     outputs: [{ name: "", internalType: "address", type: "address" }],
     stateMutability: "view",
   },
   {
     type: "function",
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    inputs: [{ name: "newValue", internalType: "uint256", type: "uint256" }],
+    inputs: [
+      { name: "id", internalType: "uint256", type: "uint256" },
+      { name: "newValue", internalType: "uint64", type: "uint64" },
+    ],
     name: "setValue",
     outputs: [],
     stateMutability: "nonpayable",
   },
   {
     type: "function",
-    inputs: [{ name: "newOwner", internalType: "address", type: "address" }],
-    name: "transferOwnership",
+    inputs: [
+      { name: "id", internalType: "uint256", type: "uint256" },
+      { name: "to", internalType: "address", type: "address" },
+    ],
+    name: "transfer",
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
+    name: "valueOf",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view",
   },
   {
     type: "event",
     anonymous: false,
     inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
       {
-        name: "newCount",
-        internalType: "uint256",
-        type: "uint256",
+        name: "newValue",
+        internalType: "uint64",
+        type: "uint64",
         indexed: false,
       },
     ],
@@ -74,94 +76,100 @@ export const ownedCounterAbi = [
     type: "event",
     anonymous: false,
     inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
       {
-        name: "previousOwner",
-        internalType: "address",
-        type: "address",
-        indexed: true,
-      },
-      {
-        name: "newOwner",
+        name: "owner",
         internalType: "address",
         type: "address",
         indexed: true,
       },
     ],
-    name: "OwnershipTransferred",
+    name: "Minted",
   },
   {
     type: "event",
     anonymous: false,
     inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
+      { name: "from", internalType: "address", type: "address", indexed: true },
+      { name: "to", internalType: "address", type: "address", indexed: true },
+    ],
+    name: "Transferred",
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
       {
-        name: "newCount",
-        internalType: "uint256",
-        type: "uint256",
+        name: "newValue",
+        internalType: "uint64",
+        type: "uint64",
         indexed: false,
       },
     ],
     name: "ValueSet",
   },
-  {
-    type: "error",
-    inputs: [{ name: "owner", internalType: "address", type: "address" }],
-    name: "OwnableInvalidOwner",
-  },
-  {
-    type: "error",
-    inputs: [{ name: "account", internalType: "address", type: "address" }],
-    name: "OwnableUnauthorizedAccount",
-  },
 ] as const;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SharedCounter
+// SharedCounterRegistry
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const sharedCounterAbi = [
-  { type: "constructor", inputs: [], stateMutability: "nonpayable" },
+export const sharedCounterRegistryAbi = [
   {
     type: "function",
     inputs: [],
-    name: "count",
-    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
-    stateMutability: "view",
+    name: "create",
+    outputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
-    inputs: [],
-    name: "getCount",
-    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    inputs: [],
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
     name: "increment",
     outputs: [],
     stateMutability: "nonpayable",
   },
   {
     type: "function",
-    inputs: [{ name: "newValue", internalType: "uint256", type: "uint256" }],
+    inputs: [],
+    name: "nextId",
+    outputs: [{ name: "", internalType: "uint256", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    inputs: [
+      { name: "id", internalType: "uint256", type: "uint256" },
+      { name: "newValue", internalType: "uint64", type: "uint64" },
+    ],
     name: "setValue",
     outputs: [],
     stateMutability: "nonpayable",
   },
   {
+    type: "function",
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256" }],
+    name: "valueOf",
+    outputs: [{ name: "", internalType: "uint64", type: "uint64" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    anonymous: false,
+    inputs: [{ name: "id", internalType: "uint256", type: "uint256", indexed: true }],
+    name: "Created",
+  },
+  {
     type: "event",
     anonymous: false,
     inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
       {
-        name: "incrementer",
-        internalType: "address",
-        type: "address",
-        indexed: true,
-      },
-      {
-        name: "newCount",
-        internalType: "uint256",
-        type: "uint256",
+        name: "newValue",
+        internalType: "uint64",
+        type: "uint64",
         indexed: false,
       },
     ],
@@ -171,16 +179,11 @@ export const sharedCounterAbi = [
     type: "event",
     anonymous: false,
     inputs: [
+      { name: "id", internalType: "uint256", type: "uint256", indexed: true },
       {
-        name: "setter",
-        internalType: "address",
-        type: "address",
-        indexed: true,
-      },
-      {
-        name: "newCount",
-        internalType: "uint256",
-        type: "uint256",
+        name: "newValue",
+        internalType: "uint64",
+        type: "uint64",
         indexed: false,
       },
     ],

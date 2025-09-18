@@ -36,7 +36,13 @@
       "Bash(bunx tsc:*)",
       "WebFetch(domain:docs.reown.com)",
       "Bash(npm ls:*)",
-      "Bash(bun install:*)"
+      "Bash(bun install:*)",
+      "Bash(fd:*)",
+      "Bash(sui client publish:*)",
+      "Bash(bun scripts/suigenv0.ts:*)",
+      "Bash(bun remove:*)",
+      "Bash(bun add:*)",
+      "Bash(bun list:*)"
     ],
     "deny": [],
     "ask": []

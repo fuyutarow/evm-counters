@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     foundry({
       project: "./contracts",
-      include: ["OwnedCounter.sol/**", "SharedCounter.sol/**"],
+      include: ["OwnedCounterRegistry.sol/**", "SharedCounterRegistry.sol/**"],
     }),
   ],
 });
