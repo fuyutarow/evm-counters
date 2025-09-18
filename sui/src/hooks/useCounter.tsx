@@ -7,7 +7,7 @@
  */
 
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
-import { type SuiObjectChange, type SuiTransactionBlockResponse } from "@mysten/sui/client";
+import { type SuiObjectChange } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { counterPackage, isOwned_counterOwnedCounterType } from "@/abi";
@@ -74,15 +74,25 @@ const showTxSuccessToast = (message: string, digest: string) => {
 export function useCounter() {
   const suiClient = useSuiClient();
   const { mutateAsync: executeTransaction } = useSignAndExecuteTransaction({
-    execute: async ({ bytes, signature }) =>
-      await suiClient.executeTransactionBlock({
+    execute: async ({ bytes, signature }) => {
+      const executionResult = await suiClient.executeTransactionBlock({
         transactionBlock: bytes,
         signature,
         options: {
           showRawEffects: true,
           showObjectChanges: true,
         },
-      }),
+        requestType: "WaitForLocalExecution",
+      });
+
+      return suiClient.waitForTransaction({
+        digest: executionResult.digest,
+        options: {
+          showRawEffects: true,
+          showObjectChanges: true,
+        },
+      });
+    },
   });
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
@@ -91,33 +101,25 @@ export function useCounter() {
   const createOwnedCounter = useMutation({
     mutationKey: ["counter", "owned", "create"],
     mutationFn: async (): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        if (!account?.address) {
-          reject(new Error("No account connected"));
-          return;
-        }
+      if (!account?.address) {
+        throw new Error("No account connected");
+      }
 
-        const tx = new Transaction();
-        const counter = counterPackage.owned_counter.new(tx);
-        tx.transferObjects([counter], account.address);
+      const tx = new Transaction();
+      const counter = counterPackage.owned_counter.new(tx);
+      tx.transferObjects([counter], account.address);
 
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            const created = result.objectChanges?.find(
-              (c: SuiObjectChange) => c.type === "created",
-            );
+      const result = await executeTransaction({ transaction: tx });
+      const created = result.objectChanges?.find((c: SuiObjectChange) => c.type === "created");
 
-            if (!created || created.type !== "created") {
-              reject(new Error("Failed to create owned counter"));
-              return;
-            }
+      if (!created || created.type !== "created") {
+        throw new Error("Failed to create owned counter");
+      }
 
-            showTxSuccessToast("Owned counter created successfully!", result.digest);
-            queryClient.invalidateQueries({ queryKey: ["owned-counters"] });
-            resolve(created.objectId);
-          })
-          .catch(reject);
-      });
+      showTxSuccessToast("Owned counter created successfully!", result.digest);
+      await queryClient.invalidateQueries({ queryKey: ["owned-counters"] });
+
+      return created.objectId;
     },
     onError: (error) => {
       toast.error("Failed to create owned counter", {
@@ -129,21 +131,18 @@ export function useCounter() {
   const incrementOwnedCounter = useMutation({
     mutationKey: ["counter", "owned", "increment"],
     mutationFn: async (counterId: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const tx = new Transaction();
-        counterPackage.owned_counter.increment(tx, {
-          arguments: [tx.object(counterId)],
-        });
-
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            showTxSuccessToast("Counter incremented successfully!", result.digest);
-            queryClient.invalidateQueries({ queryKey: ["counter", counterId] });
-            queryClient.invalidateQueries({ queryKey: ["owned-counters"] });
-            resolve();
-          })
-          .catch(reject);
+      const tx = new Transaction();
+      counterPackage.owned_counter.increment(tx, {
+        arguments: [tx.object(counterId)],
       });
+
+      const result = await executeTransaction({ transaction: tx });
+
+      showTxSuccessToast("Counter incremented successfully!", result.digest);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["counter", counterId] }),
+        queryClient.invalidateQueries({ queryKey: ["owned-counters"] }),
+      ]);
     },
     onError: (error) => {
       toast.error("Failed to increment counter", {
@@ -155,21 +154,18 @@ export function useCounter() {
   const setOwnedCounterValue = useMutation({
     mutationKey: ["counter", "owned", "setValue"],
     mutationFn: async (params: { counterId: string; value: bigint }): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const tx = new Transaction();
-        counterPackage.owned_counter.set_value(tx, {
-          arguments: [tx.object(params.counterId), tx.pure.u64(params.value)],
-        });
-
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            showTxSuccessToast(`Counter set to ${params.value}!`, result.digest);
-            queryClient.invalidateQueries({ queryKey: ["counter", params.counterId] });
-            queryClient.invalidateQueries({ queryKey: ["owned-counters"] });
-            resolve();
-          })
-          .catch(reject);
+      const tx = new Transaction();
+      counterPackage.owned_counter.set_value(tx, {
+        arguments: [tx.object(params.counterId), tx.pure.u64(params.value)],
       });
+
+      const result = await executeTransaction({ transaction: tx });
+
+      showTxSuccessToast(`Counter set to ${params.value}!`, result.digest);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["counter", params.counterId] }),
+        queryClient.invalidateQueries({ queryKey: ["owned-counters"] }),
+      ]);
     },
     onError: (error) => {
       toast.error("Failed to set counter value", {
@@ -182,27 +178,20 @@ export function useCounter() {
   const createSharedCounter = useMutation({
     mutationKey: ["counter", "shared", "create"],
     mutationFn: async (): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const tx = new Transaction();
-        counterPackage.shared_counter.create(tx);
+      const tx = new Transaction();
+      counterPackage.shared_counter.create(tx);
 
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            const created = result.objectChanges?.find(
-              (c: SuiObjectChange) => c.type === "created",
-            );
+      const result = await executeTransaction({ transaction: tx });
+      const created = result.objectChanges?.find((c: SuiObjectChange) => c.type === "created");
 
-            if (!created || created.type !== "created") {
-              reject(new Error("Failed to create shared counter"));
-              return;
-            }
+      if (!created || created.type !== "created") {
+        throw new Error("Failed to create shared counter");
+      }
 
-            showTxSuccessToast("Shared counter created successfully!", result.digest);
-            queryClient.invalidateQueries({ queryKey: ["shared-counters"] });
-            resolve(created.objectId);
-          })
-          .catch(reject);
-      });
+      showTxSuccessToast("Shared counter created successfully!", result.digest);
+      await queryClient.invalidateQueries({ queryKey: ["shared-counters"] });
+
+      return created.objectId;
     },
     onError: (error) => {
       toast.error("Failed to create shared counter", {
@@ -214,21 +203,18 @@ export function useCounter() {
   const incrementSharedCounter = useMutation({
     mutationKey: ["counter", "shared", "increment"],
     mutationFn: async (counterId: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const tx = new Transaction();
-        counterPackage.shared_counter.increment(tx, {
-          arguments: [tx.object(counterId)],
-        });
-
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            showTxSuccessToast("Shared counter incremented successfully!", result.digest);
-            queryClient.invalidateQueries({ queryKey: ["counter", counterId] });
-            queryClient.invalidateQueries({ queryKey: ["shared-counters"] });
-            resolve();
-          })
-          .catch(reject);
+      const tx = new Transaction();
+      counterPackage.shared_counter.increment(tx, {
+        arguments: [tx.object(counterId)],
       });
+
+      const result = await executeTransaction({ transaction: tx });
+
+      showTxSuccessToast("Shared counter incremented successfully!", result.digest);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["counter", counterId] }),
+        queryClient.invalidateQueries({ queryKey: ["shared-counters"] }),
+      ]);
     },
     onError: (error) => {
       toast.error("Failed to increment shared counter", {
@@ -240,21 +226,18 @@ export function useCounter() {
   const setSharedCounterValue = useMutation({
     mutationKey: ["counter", "shared", "setValue"],
     mutationFn: async (params: { counterId: string; value: bigint }): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        const tx = new Transaction();
-        counterPackage.shared_counter.set_value(tx, {
-          arguments: [tx.object(params.counterId), tx.pure.u64(params.value)],
-        });
-
-        executeTransaction({ transaction: tx })
-          .then((result: SuiTransactionBlockResponse) => {
-            showTxSuccessToast(`Shared counter set to ${params.value}!`, result.digest);
-            queryClient.invalidateQueries({ queryKey: ["counter", params.counterId] });
-            queryClient.invalidateQueries({ queryKey: ["shared-counters"] });
-            resolve();
-          })
-          .catch(reject);
+      const tx = new Transaction();
+      counterPackage.shared_counter.set_value(tx, {
+        arguments: [tx.object(params.counterId), tx.pure.u64(params.value)],
       });
+
+      const result = await executeTransaction({ transaction: tx });
+
+      showTxSuccessToast(`Shared counter set to ${params.value}!`, result.digest);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["counter", params.counterId] }),
+        queryClient.invalidateQueries({ queryKey: ["shared-counters"] }),
+      ]);
     },
     onError: (error) => {
       toast.error("Failed to set shared counter value", {
