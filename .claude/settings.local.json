@@ -34,7 +34,9 @@
       "Bash(mise trust:*)",
       "Bash(forge:*)",
       "Bash(bunx tsc:*)",
-      "WebFetch(domain:docs.reown.com)"
+      "WebFetch(domain:docs.reown.com)",
+      "Bash(npm ls:*)",
+      "Bash(bun install:*)"
     ],
     "deny": [],
     "ask": []

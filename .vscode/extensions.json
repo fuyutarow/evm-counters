@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    // Language support
+    "mysten.move",
+    "mysten.prettier-move",
+    "mysten.move-trace-debug",
+    "ms-vscode.vscode-typescript-next",
+    // Formatting & Linting
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    // Development tools
+    "github.vscode-pull-request-github",
+    "mikestead.dotenv"
+  ]
+}
