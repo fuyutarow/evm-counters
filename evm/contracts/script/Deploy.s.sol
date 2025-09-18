@@ -2,25 +2,21 @@
 pragma solidity ^0.8.26;
 
 import {Script, console} from "@forge-std/Script.sol";
-import {OwnedCounter} from "../src/OwnedCounter.sol";
-import {SharedCounter} from "../src/SharedCounter.sol";
+import {OwnedCounterRegistry} from "../src/OwnedCounterRegistry.sol";
+import {SharedCounterRegistry} from "../src/SharedCounterRegistry.sol";
 
 contract Deploy is Script {
     function run() external {
-        address owner = vm.envAddress("OWNER");
-        
         vm.startBroadcast();
-        
-        // Deploy OwnedCounter
-        OwnedCounter ownedCounter = new OwnedCounter(owner);
-        console.log("OwnedCounter deployed at:", address(ownedCounter));
-        
-        // Deploy SharedCounter
-        SharedCounter sharedCounter = new SharedCounter();
-        console.log("SharedCounter deployed at:", address(sharedCounter));
-        
+
+        // Deploy OwnedCounterRegistry
+        OwnedCounterRegistry ownedCounterRegistry = new OwnedCounterRegistry();
+        console.log("OwnedCounterRegistry deployed at:", address(ownedCounterRegistry));
+
+        // Deploy SharedCounterRegistry
+        SharedCounterRegistry sharedCounterRegistry = new SharedCounterRegistry();
+        console.log("SharedCounterRegistry deployed at:", address(sharedCounterRegistry));
+
         vm.stopBroadcast();
-        
-        console.log("Owner address:", owner);
     }
 }

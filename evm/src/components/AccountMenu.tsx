@@ -50,7 +50,10 @@ export function AccountMenu() {
           <span className="hidden sm:inline">{displayName}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent
+        align="end"
+        className="w-56 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      >
         <DropdownMenuLabel className="flex flex-col">
           <span>Account</span>
           {ensName && <span className="font-normal text-muted-foreground text-sm">{ensName}</span>}

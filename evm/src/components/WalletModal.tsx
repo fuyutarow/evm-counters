@@ -82,7 +82,7 @@ export function WalletModal({ open, onOpenChange }: WalletModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+      <DialogContent className="max-w-md bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />

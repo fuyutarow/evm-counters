@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAccount, useChainId } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
+import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 
 export function AppBar() {
@@ -86,6 +87,7 @@ export function AppBar() {
               </a>
             </Button>
           )}
+          <ModeToggle />
           <ConnectButton />
         </div>
       </div>
