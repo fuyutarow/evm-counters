@@ -12,15 +12,12 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'
-  const network = WalletAdapterNetwork.Devnet;
+  const _network = WalletAdapterNetwork.Devnet;
 
-  // You can also provide a custom RPC endpoint
+  // Using local test validator
   const endpoint = useMemo(() => {
-    if (network === WalletAdapterNetwork.Devnet) {
-      return "https://api.devnet.solana.com";
-    }
-    return "https://api.mainnet-beta.solana.com";
-  }, [network]);
+    return "http://localhost:8899";
+  }, []);
 
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
 
