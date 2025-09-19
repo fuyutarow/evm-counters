@@ -101,7 +101,7 @@
     "includes": [
       "src/**/*.{js,jsx,ts,tsx,json}",
       "scripts/**/*.{js,ts,mjs,mts,json}",
-      "__tests__/**/*.{js,jsx,ts,tsx,json}",
+      "tests/**/*.{js,jsx,ts,tsx,json}",
       "*.{js,jsx,ts,tsx,json}",
       "!**/node_modules",
       "!**/dist",

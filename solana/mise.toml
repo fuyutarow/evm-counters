@@ -27,17 +27,21 @@ depends = ["build:programs"]
 
 [tasks.deploy]
 description = "全プログラムのデプロイ"
-depends = ["build", "keypairs", "deploy:programs"]
+depends = ["build", "keypairs", "deploy:programs", "codegen"]
 
 [tasks.test]
-description = "プログラムビルドテスト"
+description = "Bun Testでプログラムテスト実行"
 alias = "t"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🧪 プログラムビルドテスト中..."
-anchor build --no-idl
-echo "✅ ビルド成功（テスト未実装）"
+echo "🧪 Bun Testでテスト実行中..."
+# Anchorテスト環境のセットアップ
+export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+export ANCHOR_WALLET=~/.config/solana/id.json
+# Bun Testを実行
+bun test tests/*.test.ts
+echo "✅ テスト完了"
 '''
 
 [tasks.clean]
@@ -153,6 +157,34 @@ depends = ["keypair:owned", "keypair:shared"]
 [tasks.idl]
 description = "全IDLファイルの生成"
 depends = ["idl:owned", "idl:shared"]
+
+[tasks.codegen]
+description = "IDLファイルの自動生成"
+alias = "cg"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 IDLファイル自動生成開始..."
+
+# まずプログラムIDを更新
+echo "🔧 プログラムIDをAnchor.tomlに反映..."
+OWNED_ID=$(solana address -k target/deploy/owned_counter-keypair.json)
+SHARED_ID=$(solana address -k target/deploy/shared_counter-keypair.json)
+
+# Anchor.tomlを更新
+sed -i "s/owned_counter = \"[^\"]*\"/owned_counter = \"$OWNED_ID\"/" Anchor.toml
+sed -i "s/shared_counter = \"[^\"]*\"/shared_counter = \"$SHARED_ID\"/" Anchor.toml
+
+echo "   owned_counter: $OWNED_ID"
+echo "   shared_counter: $SHARED_ID"
+
+# IDLファイルを自動生成
+echo "📄 IDLファイル生成中..."
+anchor idl build -p owned_counter -o src/idl/owned_counter.json -t src/idl/owned_counter.ts --no-docs
+anchor idl build -p shared_counter -o src/idl/shared_counter.json -t src/idl/shared_counter.ts --no-docs
+
+echo "✅ IDL自動生成完了"
+'''
 
 # ===============================================
 # 🏗️  アトミック インフラタスク（実装詳細）

@@ -8,16 +8,16 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-owned_counter = "ENdp1djfauQdhWivbq9eWccodFhepPgk35YhbU6vN5NV"
-shared_counter = "6Zxr95zDqagjfR5JAdZ24dT3FTqzn5N2eaagGHXEbA22"
+owned_counter = "Afj1Jid7Hwr9Pa7wUnZ4MHVq1MJQtd2Tk3jcTCHJh6rq"
+shared_counter = "GPmMruCgQL4HLkt4KDzSRd4KrZ3uRBa3mCzxdtLuAaeY"
 
 [programs.devnet]
-owned_counter = "4VaxisFFjxbjD6gNDBjid7gaptQvNp1tpRTgGS5YfC22"
-shared_counter = "5v1W7sNkrufDdRND19rxtMWmLXEXWbwTRy4mq7Dk3B6m"
+owned_counter = "Afj1Jid7Hwr9Pa7wUnZ4MHVq1MJQtd2Tk3jcTCHJh6rq"
+shared_counter = "GPmMruCgQL4HLkt4KDzSRd4KrZ3uRBa3mCzxdtLuAaeY"
 
 [programs.testnet]
-owned_counter = "4VaxisFFjxbjD6gNDBjid7gaptQvNp1tpRTgGS5YfC22"
-shared_counter = "5v1W7sNkrufDdRND19rxtMWmLXEXWbwTRy4mq7Dk3B6m"
+owned_counter = "Afj1Jid7Hwr9Pa7wUnZ4MHVq1MJQtd2Tk3jcTCHJh6rq"
+shared_counter = "GPmMruCgQL4HLkt4KDzSRd4KrZ3uRBa3mCzxdtLuAaeY"
 
 [registry]
 url = "https://api.apr.dev"

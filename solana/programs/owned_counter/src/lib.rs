@@ -6,40 +6,32 @@ declare_id!("ENdp1djfauQdhWivbq9eWccodFhepPgk35YhbU6vN5NV");
 pub mod owned_counter {
     use super::*;
 
-    pub fn create(ctx: Context<Create>, seed: u64) -> Result<()> {
-        let c = &mut ctx.accounts.counter;
-        c.authority = ctx.accounts.authority.key();
-        c.value = 0;
-        c.seed = seed;
-        c.bump = ctx.bumps.counter;
+    pub fn create(ctx: Context<CreateCounter>, seed: u64) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        counter.owner = ctx.accounts.owner.key();
+        counter.value = 0;
+        counter.seed = seed;
+
         msg!(
-            "OwnedCounter created with seed {} for authority {}",
+            "OwnedCounter created with seed {} by owner {}",
             seed,
-            c.authority
+            counter.owner
         );
         Ok(())
     }
 
-    pub fn increment(ctx: Context<AuthOnly>) -> Result<()> {
-        let c = &mut ctx.accounts.counter;
-        require_keys_eq!(
-            c.authority,
-            ctx.accounts.authority.key(),
-            ErrorCode::NotOwner
-        );
-        c.value = c.value.checked_add(1).ok_or(ErrorCode::Overflow)?;
-        msg!("OwnedCounter incremented to {}", c.value);
+    pub fn increment(ctx: Context<CounterUpdate>) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        require_keys_eq!(counter.owner, ctx.accounts.owner.key(), ErrorCode::NotOwner);
+        counter.value = counter.value.checked_add(1).ok_or(ErrorCode::Overflow)?;
+        msg!("OwnedCounter incremented to {}", counter.value);
         Ok(())
     }
 
-    pub fn set_value(ctx: Context<AuthOnly>, new_value: u64) -> Result<()> {
-        let c = &mut ctx.accounts.counter;
-        require_keys_eq!(
-            c.authority,
-            ctx.accounts.authority.key(),
-            ErrorCode::NotOwner
-        );
-        c.value = new_value;
+    pub fn set_value(ctx: Context<CounterUpdate>, new_value: u64) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        require_keys_eq!(counter.owner, ctx.accounts.owner.key(), ErrorCode::NotOwner);
+        counter.value = new_value;
         msg!("OwnedCounter value set to {}", new_value);
         Ok(())
     }
@@ -47,38 +39,36 @@ pub mod owned_counter {
 
 #[account]
 pub struct OwnedCounter {
-    pub authority: Pubkey,
+    pub owner: Pubkey,
     pub value: u64,
     pub seed: u64,
-    pub bump: u8,
 }
 
 impl OwnedCounter {
-    pub const LEN: usize = 8 + 32 + 8 + 8 + 1;
+    pub const LEN: usize = 8 + 32 + 8 + 8;
 }
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
-pub struct Create<'info> {
-    pub authority: Signer<'info>,
+pub struct CreateCounter<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
     #[account(
         init,
-        payer = payer,
-        space = OwnedCounter::LEN,
-        seeds = [b"owned", authority.key().as_ref(), seed.to_le_bytes().as_ref()],
-        bump
+        payer = owner,
+        space = OwnedCounter::LEN
     )]
     pub counter: Account<'info, OwnedCounter>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct AuthOnly<'info> {
-    #[account(mut)]
+pub struct CounterUpdate<'info> {
+    pub owner: Signer<'info>,
+    #[account(
+        mut,
+        has_one = owner
+    )]
     pub counter: Account<'info, OwnedCounter>,
-    pub authority: Signer<'info>,
 }
 
 #[error_code]

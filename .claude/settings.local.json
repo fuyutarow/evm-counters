@@ -65,7 +65,13 @@
       "Bash(test:*)",
       "Bash(mise tasks:*)",
       "Bash(bun next build:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__onboarding",
+      "mcp__serena__write_memory",
+      "Bash(m codegen)",
+      "Bash(m test:*)",
+      "Bash(m deploy:*)"
     ],
     "deny": [],
     "ask": []
