@@ -42,7 +42,17 @@
       "Bash(bun scripts/suigenv0.ts:*)",
       "Bash(bun remove:*)",
       "Bash(bun add:*)",
-      "Bash(bun list:*)"
+      "Bash(bun list:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:crates.io)",
+      "Bash(solana:*)",
+      "Bash(anchor build)",
+      "Bash(anchor idl build:*)",
+      "Bash(ANCHOR_LOG=true anchor idl build -p owned_counter -o src/idl/owned_counter.json --no-docs)",
+      "Bash(cargo clean:*)",
+      "Bash(cat:*)",
+      "Bash(bun run:*)"
     ],
     "deny": [],
     "ask": []

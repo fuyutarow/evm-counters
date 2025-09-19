@@ -10,7 +10,7 @@ const Web3Providers = dynamic(
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <Web3Providers>{children}</Web3Providers>
     </ThemeProvider>
   );

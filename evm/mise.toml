@@ -1,7 +1,7 @@
 [tools]
-node = "latest"
-bun = "latest"
-foundry = "latest"
+node = "24.8.0"
+bun = "1.2.22"
+foundry = "1.3.6"
 
 [vars]
 default_network = "sepolia"
@@ -216,10 +216,6 @@ description = "Open Sepolia faucet in browser"
 run = "open https://sepoliafaucet.com"
 
 
-
-
-
-
 [tasks.deploy]
 description = "Deploy contracts to network | 引数: [NETWORK] (default: sepolia)"
 alias = "deploy"
@@ -258,11 +254,6 @@ echo "  3. mise run dev        # Restart development server"
 # 3. mise run dev      # 開発サーバー再起動
 
 
-
-
-
-
-
 # ===========================
 # 🧪 TESTING
 # ===========================
@@ -299,8 +290,6 @@ cd .. && bunx @wagmi/cli generate
 echo ""
 echo "✅ All types generated successfully!"
 '''
-
-
 
 
 # ===========================
