@@ -7,305 +7,316 @@ foundry = "1.3.6"
 default_network = "sepolia"
 gas_budget = "100000000"
 
-# ===========================
-# 🚀 DEVELOPMENT
-# ===========================
-
-[tasks.install]
-description = "Install dependencies"
-alias = "i"
-run = "bun install"
+# ===============================================
+# 🚀 主要ワークフロー（よく使うタスク）
+# ===============================================
 
 [tasks.dev]
-description = "Start full development environment (Anvil + contracts + frontend)"
+description = "完全開発環境の起動（Anvil + コントラクト + フロントエンド）"
 alias = "d"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🚀 Starting full development environment..."
+echo "🚀 完全開発環境起動中..."
 echo ""
 
-# Kill any existing anvil processes
+# 既存のanvilプロセスを停止
 if pgrep -f anvil > /dev/null; then
-    echo "Stopping existing Anvil processes..."
+    echo "既存のAnvilプロセスを停止中..."
     pkill -f anvil
     sleep 2
 fi
 
-echo "Starting Anvil in background..."
+echo "バックグラウンドでAnvil起動中..."
 anvil &
 ANVIL_PID=$!
-echo "Anvil started with PID: $ANVIL_PID"
+echo "Anvil起動完了 PID: $ANVIL_PID"
 echo ""
 sleep 3
-echo "Deploying contracts..."
+echo "コントラクトデプロイ中..."
 cd contracts && OWNER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
 echo ""
-echo "Starting frontend..."
-echo "Press Ctrl+C to stop both Anvil and frontend"
+echo "フロントエンド起動中..."
+echo "Ctrl+C で Anvil とフロントエンド両方を停止"
 trap "kill $ANVIL_PID 2>/dev/null" EXIT
 cd .. && bun run dev
 '''
 
-[tasks.dev-frontend]
-description = "Start frontend development server only"
-alias = "df"
-run = "bun run dev"
-
-[tasks.dev-contracts]
-description = "Start Anvil blockchain only"
-alias = "dc"
-run = "anvil"
-
 [tasks.build]
-description = "Build the project"
+description = "プロジェクト全体のビルド"
 alias = "b"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📦 Building project..."
-echo ""
-echo "Step 1: Building contracts..."
-forge build
-echo ""
-echo "Step 2: Building Next.js app..."
-bun run build
-echo ""
-echo "✅ Build complete!"
-'''
-
-[tasks.lint]
-description = "Run all linters (Biome + ESLint + TypeScript)"
-alias = "l"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔍 Running all linters..."
-echo ""
-echo "Step 1: Biome check..."
-bunx biome check .
-echo "✅ Biome passed"
-echo ""
-echo "Step 2: ESLint check..."
-npx eslint . --ext .ts,.tsx --max-warnings 0
-echo "✅ ESLint passed"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "🎉 All checks passed!"
-'''
-
-[tasks.format]
-description = "Format code with biome"
-alias = "fmt"
-run = "bunx biome format --write ."
-
-[tasks.typecheck]
-description = "Run TypeScript type check"
-alias = "tc"
-run = "bunx tsc --noEmit"
-
-# ===========================
-# 🔍 LINT (チェックのみ)
-# ===========================
-
-[tasks.lint-biome]
-description = "Run Biome check only"
-alias = "lb"
-run = "bunx biome check ."
-
-[tasks.lint-eslint]
-description = "Run ESLint check only"
-alias = "le"
-run = "npx eslint . --ext .ts,.tsx --max-warnings 0"
-
-[tasks.lint-types]
-description = "Run TypeScript check only"
-alias = "lt"
-run = "bunx tsc --noEmit"
-
-
-# ===========================
-# 🔧 FIX (自動修正)
-# ===========================
-
-[tasks.fix]
-description = "Fix all auto-fixable issues (Biome unsafe + ESLint) + TypeScript check"
-alias = "f"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔧 Fixing all auto-fixable issues..."
-echo ""
-echo "Step 1: Biome unsafe fix..."
-bunx biome check --write --unsafe .
-echo "✅ Biome unsafe fixed"
-echo ""
-echo "Step 2: ESLint fix..."
-npx eslint src --ext .ts,.tsx --fix || true
-echo "✅ ESLint fixed"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "🎉 All fixable issues resolved!"
-'''
-
-[tasks.fix-biome]
-description = "Fix with Biome only"
-alias = "fb"
-run = "bunx biome check --write ."
-
-[tasks.fix-eslint]
-description = "Fix with ESLint only"
-alias = "fe"
-run = "npx eslint src --ext .ts,.tsx --fix"
-
-[tasks.fix-unsafe]
-description = "Fix with Biome unsafe mode (aggressive)"
-alias = "fu"
-run = "bunx biome check --write --unsafe ."
-
-[tasks.clean]
-description = "Clean all build artifacts and caches"
-alias = "c"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🧹 Cleaning all build artifacts..."
-rip .next || true
-rip .next-dev || true
-rip tsconfig.tsbuildinfo || true
-rip dist || true
-rip contracts/out || true
-rip contracts/cache || true
-rip contracts/broadcast || true
-echo "✅ All cleaned!"
-'''
-
-# ===========================
-# 📦 BUILD & DEPLOY
-# ===========================
-
-[tasks.preview]
-description = "Preview built app"
-alias = "p"
-run = "bun run preview"
-
-[tasks.up]
-description = "Update dependencies to latest versions"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📦 Checking for outdated packages..."
-bunx npm-check-updates
-echo ""
-echo "📦 Updating package.json to latest versions..."
-bunx npm-check-updates -u
-echo ""
-echo "📦 Installing updated dependencies..."
-npm install
-echo "✅ Dependencies updated to latest versions!"
-'''
-
-[tasks.faucet]
-description = "Open Sepolia faucet in browser"
-run = "open https://sepoliafaucet.com"
-
+depends = ["build:contracts", "build:ui"]
 
 [tasks.deploy]
-description = "Deploy contracts to network | 引数: [NETWORK] (default: sepolia)"
-alias = "deploy"
+description = "指定ネットワークへのコントラクトデプロイ"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
 NETWORK="${1:-sepolia}"
 
-echo "🚀 Deploying contracts to $NETWORK..."
+echo "🚀 $NETWORK へのコントラクトデプロイ中..."
 echo ""
-echo "Step 1: Building contracts..."
+echo "Step 1: コントラクトビルド中..."
 cd contracts && forge build
 echo ""
-echo "Step 2: Deploying contracts..."
+echo "Step 2: コントラクトデプロイ中..."
 forge script script/Deploy.s.sol --rpc-url $NETWORK --broadcast --verify
 echo ""
-echo "✅ Deployment complete!"
+echo "✅ デプロイ完了！"
 echo ""
-echo "🔄 Next steps:"
-echo "  1. Update contract addresses in frontend config"
-echo "  2. mise run codegen    # Update TypeScript ABIs"
-echo "  3. mise run dev        # Restart development server"
+echo "🔄 次の手順:"
+echo "  1. フロントエンド設定でコントラクトアドレスを更新"
+echo "  2. mise run codegen    # TypeScript ABI定義の再生成"
+echo "  3. mise run dev        # 開発サーバー再起動"
 '''
 
-# 引数: [NETWORK] (default: sepolia)
-# 機能: コントラクトのビルドとデプロイを実行
-# 対応ネットワーク: sepolia, mainnet, localhost等
-#
-# 使用例:
-# mise run deploy sepolia    # Sepoliaにデプロイ
-# mise run deploy mainnet    # Mainnetにデプロイ
-#
-# デプロイ後の作業:
-# 1. フロントエンドの設定でコントラクトアドレスを更新
-# 2. mise run codegen  # TypeScript ABI定義の再生成
-# 3. mise run dev      # 開発サーバー再起動
-
-
-# ===========================
-# 🧪 TESTING
-# ===========================
-
 [tasks.test]
-description = "Run all tests with Bun"
+description = "全テストの実行"
 alias = "t"
 run = "bun test"
 
-[tasks.test-watch]
-description = "Run tests in watch mode"
-alias = "tw"
-run = "bun test --watch"
+[tasks.clean]
+description = "全ビルド成果物のクリーンアップ"
+alias = "c"
+depends = ["clean:ui", "clean:contracts"]
 
-[tasks.codegen-abi]
-description = "Generate TypeScript ABIs from Forge artifacts"
-alias = ["gen-abi", "abigen"]
-run = "forge build && bunx @wagmi/cli generate"
+[tasks.install]
+description = "全依存関係のインストール"
+alias = "i"
+run = "bun install"
 
+[tasks.up]
+description = "依存関係を最新バージョンに更新"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "📦 古いパッケージをチェック中..."
+bun outdated
+echo ""
+echo "📦 package.jsonを最新バージョンに更新中..."
+bun npm-check-updates -u
+echo ""
+echo "📦 更新された依存関係をインストール中..."
+bun install
+echo "✅ 依存関係を最新バージョンに更新完了！"
+'''
+
+# ===============================================
+# 📋 ユーティリティ・管理タスク
+# ===============================================
+
+[tasks.lint]
+description = "全リンターの実行"
+alias = "l"
+depends = ["lint:biome", "lint:typescript", "lint:eslint"]
+
+[tasks.fix]
+description = "自動修正可能な問題の修正"
+alias = "f"
+depends = ["fix:biome", "fix:eslint"]
+
+[tasks.preview]
+description = "ビルド済みアプリのプレビュー"
+alias = "p"
+run = "bun run preview"
+
+[tasks.typecheck]
+description = "TypeScript型チェックの実行"
+alias = "tc"
+run = "bun tsc --noEmit"
+
+[tasks.format]
+description = "コードフォーマットの実行"
+alias = "fmt"
+depends = ["format:biome", "format:solidity"]
 
 [tasks.codegen]
-description = "Generate TypeScript types from contracts"
+description = "コントラクトからTypeScript型定義を生成"
 alias = "gen"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🏗️  Generating types..."
+echo "🏗️ 型定義生成中..."
 echo ""
-echo "Step 1: Building contracts..."
+echo "Step 1: コントラクトビルド中..."
 cd contracts && forge build
 echo ""
-echo "Step 2: Generating TypeScript ABIs..."
-cd .. && bunx @wagmi/cli generate
+echo "Step 2: TypeScript ABI生成中..."
+cd .. && bun @wagmi/cli generate
 echo ""
-echo "✅ All types generated successfully!"
+echo "✅ 全型定義生成完了！"
 '''
 
+[tasks.faucet]
+description = "Sepolia faucetをブラウザで開く"
+run = "open https://sepoliafaucet.com"
 
-# ===========================
-# ⚒️ FOUNDRY TOOLS
-# ===========================
+# ===============================================
+# 🎯 その他のコンポジットタスク
+# ===============================================
 
-[tasks.forge-test]
-description = "Run Foundry tests"
+[tasks."dev:ui"]
+description = "UI開発サーバーのみ起動"
+alias = "df"
+run = "bun run dev"
+
+[tasks."dev:localnode"]
+description = "ローカルノード（Anvil）のみ起動"
+alias = "dc"
+run = "anvil"
+
+[tasks."test:watch"]
+description = "ウォッチモードでのテスト実行"
+alias = "tw"
+run = "bun test --watch"
+
+[tasks."test:forge"]
+description = "Foundryテストの実行"
 alias = "ft"
 run = "cd contracts && forge test"
 
-[tasks.forge-fmt]
-description = "Format Solidity code"
-alias = "solidity-fmt"
-run = "cd contracts && forge fmt"
+# ===============================================
+# 🌐 アトミック UIタスク
+# ===============================================
 
-[tasks.anvil]
-description = "Start local Ethereum node"
-run = "anvil"
+[tasks."build:ui"]
+description = "UIのみビルド"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🏗️ UIビルド中..."
+bun run build
+echo "✅ UIビルド完了"
+'''
+
+[tasks."clean:ui"]
+description = "UI成果物のみクリーン"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 UI成果物クリーン中..."
+rip .next || true
+rip .next-dev || true
+rip tsconfig.tsbuildinfo || true
+rip dist || true
+echo "✅ UIクリーン完了"
+'''
+
+# ===============================================
+# 🔍 アトミック リント・修正タスク
+# ===============================================
+
+[tasks."lint:biome"]
+description = "Biomeチェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Biomeチェック中..."
+bun biome check .
+echo "✅ Biomeチェック完了"
+'''
+
+[tasks."lint:typescript"]
+description = "TypeScript型チェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 TypeScript型チェック中..."
+bun tsc --noEmit
+echo "✅ TypeScript型チェック完了"
+'''
+
+[tasks."lint:eslint"]
+description = "ESLintチェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 ESLintチェック中..."
+bun eslint . --ext .ts,.tsx --max-warnings 0
+echo "✅ ESLintチェック完了"
+'''
+
+[tasks."fix:biome"]
+description = "Biome自動修正のみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 Biome自動修正中..."
+bun biome check --write --unsafe .
+echo "✅ Biome修正完了"
+'''
+
+[tasks."fix:eslint"]
+description = "ESLint自動修正のみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 ESLint自動修正中..."
+bun eslint src --ext .ts,.tsx --fix || true
+echo "✅ ESLint修正完了"
+'''
+
+[tasks."format:biome"]
+description = "Biomeフォーマットのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🎨 Biomeフォーマット中..."
+bun biome format --write .
+echo "✅ Biomeフォーマット完了"
+'''
+
+[tasks."format:solidity"]
+description = "Solidityフォーマットのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🎨 Solidityフォーマット中..."
+cd contracts && forge fmt
+echo "✅ Solidityフォーマット完了"
+'''
+
+# ===============================================
+# ⚒️  アトミック Foundryタスク
+# ===============================================
+
+[tasks."build:contracts"]
+description = "コントラクトのみビルド"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔨 コントラクトビルド中..."
+cd contracts && forge build
+echo "✅ コントラクトビルド完了"
+'''
+
+[tasks."clean:contracts"]
+description = "コントラクト成果物のみクリーン"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 コントラクト成果物クリーン中..."
+rip contracts/out || true
+rip contracts/cache || true
+rip contracts/broadcast || true
+echo "✅ コントラクトクリーン完了"
+'''
+
+[tasks."localnode:start"]
+description = "ローカルEthereumノードの起動"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 Anvil（ローカルEthereumノード）起動中..."
+anvil
+'''
+
+# ===============================================
+# 📄 アトミック コードジェネレーションタスク
+# ===============================================
+
+[tasks."codegen:abi"]
+description = "Forge成果物からTypeScript ABIのみ生成"
+alias = ["gen-abi", "abigen"]
+run = "forge build && bun @wagmi/cli generate"
+

@@ -62,7 +62,9 @@
       "Bash(pkill:*)",
       "Read(//home/fuyu/.config/solana/**)",
       "Bash(cargo build-sbf:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(mise tasks:*)",
+      "Bash(bun next build:*)"
     ],
     "deny": [],
     "ask": []

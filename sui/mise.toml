@@ -7,178 +7,276 @@ default_network = "testnet"
 default_package = "counter"
 gas_budget = "100000000"
 
-[tasks.install]
-description = "Install dependencies"
-alias = "i"
-run = "bun install"
+# ===============================================
+# 🚀 主要ワークフロー（よく使うタスク）
+# ===============================================
 
 [tasks.dev]
-description = "Start development server"
+description = "フロントエンド開発サーバーの起動"
 alias = "d"
 run = "bun run dev"
 
 [tasks.build]
-description = "Build the project"
+description = "プロジェクト全体のビルド"
 alias = "b"
+depends = ["build:ui", "codegen"]
+
+[tasks.deploy]
+description = "完全デプロイ（環境設定→faucet→ビルド→パブリッシュ）"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "📦 Building project..."
+PACKAGE="${1:-counter}"
+NETWORK="${2:-testnet}"
+
+echo "🚀 $NETWORK への $PACKAGE の完全デプロイ開始..."
 echo ""
-echo "Step 1: Generating types..."
-mise run codegen
+echo "Step 1: $NETWORK 環境設定中..."
+mise run sui:env $NETWORK
 echo ""
-echo "Step 2: Building Next.js app..."
-bun run build
+echo "Step 2: SUIトークン取得中..."
+mise run faucet:$NETWORK 2>/dev/null || mise run faucet:testnet
 echo ""
-echo "✅ Build complete!"
+echo "Step 3: $PACKAGE ビルド中..."
+mise run sui:build $PACKAGE
+echo ""
+echo "Step 4: $PACKAGE を $NETWORK にパブリッシュ中..."
+mise run sui:publish $PACKAGE $NETWORK
+echo ""
+echo "🎉 デプロイ完了！"
 '''
 
-# ===========================
-# 🔍 LINT (チェックのみ)
-# ===========================
-
-[tasks.lint]
-description = "Run all linters (Biome + ESLint + TypeScript)"
-alias = "l"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔍 Running all linters..."
-echo ""
-echo "Step 1: Biome check..."
-bunx biome check .
-echo "✅ Biome passed"
-echo ""
-echo "Step 2: ESLint check..."
-npx eslint . --ext .ts,.tsx --max-warnings 0
-echo "✅ ESLint passed"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "🎉 All checks passed!"
-'''
-
-[tasks.lint-biome]
-description = "Run Biome check only"
-alias = "lb"
-run = "bunx biome check ."
-
-[tasks.lint-eslint]
-description = "Run ESLint check only"
-alias = "le"
-run = "npx eslint . --ext .ts,.tsx --max-warnings 0"
-
-[tasks.lint-types]
-description = "Run TypeScript check only"
-alias = "lt"
-run = "bunx tsc --noEmit"
-
-[tasks.typecheck]
-description = "Run TypeScript type checking"
-alias = "tc"
-run = "bunx tsc --noEmit"
-
-# ===========================
-# 🔧 FIX (自動修正)
-# ===========================
-
-[tasks.fix]
-description = "Fix all auto-fixable issues (Biome unsafe + ESLint) + TypeScript check"
-alias = "f"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔧 Fixing all auto-fixable issues..."
-echo ""
-echo "Step 1: Biome unsafe fix..."
-bunx biome check --write --unsafe .
-echo "✅ Biome unsafe fixed"
-echo ""
-echo "Step 2: ESLint fix..."
-npx eslint src --ext .ts,.tsx --fix || true
-echo "✅ ESLint fixed"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "🎉 All fixable issues resolved!"
-'''
-
-[tasks.fix-biome]
-description = "Fix with Biome only"
-alias = "fb"
-run = "bunx biome check --write ."
-
-[tasks.fix-eslint]
-description = "Fix with ESLint only"
-alias = "fe"
-run = "npx eslint src --ext .ts,.tsx --fix"
-
-[tasks.fix-unsafe]
-description = "Fix with Biome unsafe mode (aggressive)"
-alias = "fu"
-run = "bunx biome check --write --unsafe ."
+[tasks.test]
+description = "全テストの実行"
+alias = "t"
+run = "bun test"
 
 [tasks.clean]
-description = "Clean all build artifacts and caches"
+description = "全ビルド成果物のクリーンアップ"
 alias = "c"
+depends = ["clean:ui", "clean:move"]
+
+[tasks.install]
+description = "全依存関係のインストール"
+alias = "i"
+run = "bun install"
+
+[tasks.up]
+description = "依存関係を最新バージョンに更新"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🧹 Cleaning all build artifacts..."
+echo "📦 古いパッケージをチェック中..."
+bun outdated
+echo ""
+echo "📦 package.jsonを最新バージョンに更新中..."
+bun npm-check-updates -u
+echo ""
+echo "📦 更新された依存関係をインストール中..."
+bun install
+echo "✅ 依存関係を最新バージョンに更新完了！"
+'''
+
+# ===============================================
+# 📋 ユーティリティ・管理タスク
+# ===============================================
+
+[tasks.lint]
+description = "全リンターの実行"
+alias = "l"
+depends = ["lint:biome", "lint:typescript", "lint:eslint"]
+
+[tasks.fix]
+description = "自動修正可能な問題の修正"
+alias = "f"
+depends = ["fix:biome", "fix:eslint"]
+
+[tasks.preview]
+description = "ビルド済みアプリのプレビュー"
+alias = "p"
+run = "bun run preview"
+
+[tasks.typecheck]
+description = "TypeScript型チェックの実行"
+alias = "tc"
+run = "bun tsc --noEmit"
+
+[tasks.codegen]
+description = "Sui ABI型定義の生成"
+alias = "gen"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🏗️ 型定義生成中..."
+echo ""
+echo "Sui ABI定義を生成中..."
+bun scripts/suigenv0.ts --config suigen-config.json --network testnet --output src/abi
+echo ""
+echo "✅ 型定義生成完了！"
+'''
+
+# ===============================================
+# 🎯 その他のコンポジットタスク
+# ===============================================
+
+[tasks."deploy:devnet"]
+description = "devnetへの完全デプロイ"
+alias = "deploy-dev"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 devnetへの完全デプロイ開始..."
+echo ""
+echo "Step 1: devnet環境設定中..."
+mise run sui:env-devnet
+echo ""
+echo "Step 2: SUIトークン取得中..."
+mise run faucet:devnet
+echo ""
+echo "Step 3: コントラクトビルド中..."
+mise run sui:build
+echo ""
+echo "Step 4: コントラクトパブリッシュ中..."
+mise run sui:publish
+echo ""
+echo "🎉 デプロイ完了！"
+'''
+
+[tasks."test:watch"]
+description = "ウォッチモードでのテスト実行"
+alias = "tw"
+run = "bun test --watch"
+
+# ===============================================
+# 🌐 アトミック UIタスク
+# ===============================================
+
+[tasks."build:ui"]
+description = "UIのみビルド"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🏗️ UIビルド中..."
+bun run build
+echo "✅ UIビルド完了"
+'''
+
+[tasks."clean:ui"]
+description = "UI成果物のみクリーン"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 UI成果物クリーン中..."
 rip .next || true
 rip .next-dev || true
 rip tsconfig.tsbuildinfo || true
 rip .serena || true
 rip dist || true
-rip **/build || true
-echo "✅ All cleaned!"
+echo "✅ UIクリーン完了"
 '''
 
-[tasks.preview]
-description = "Preview built app"
-alias = "p"
-run = "bun run preview"
+# ===============================================
+# 🔍 アトミック リント・修正タスク
+# ===============================================
 
-[tasks.up]
-description = "Update dependencies to latest versions"
+[tasks."lint:biome"]
+description = "Biomeチェックのみ"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "📦 Checking for outdated packages..."
-bunx npm-check-updates
-echo ""
-echo "📦 Updating package.json to latest versions..."
-bunx npm-check-updates -u
-echo ""
-echo "📦 Installing updated dependencies..."
-npm install
-echo "✅ Dependencies updated to latest versions!"
+echo "🔍 Biomeチェック中..."
+bun biome check .
+echo "✅ Biomeチェック完了"
 '''
 
-[tasks.faucet-testnet]
-description = "Open Sui testnet faucet in browser"
+[tasks."lint:typescript"]
+description = "TypeScript型チェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 TypeScript型チェック中..."
+bun tsc --noEmit
+echo "✅ TypeScript型チェック完了"
+'''
+
+[tasks."lint:eslint"]
+description = "ESLintチェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 ESLintチェック中..."
+bun eslint . --ext .ts,.tsx --max-warnings 0
+echo "✅ ESLintチェック完了"
+'''
+
+[tasks."fix:biome"]
+description = "Biome自動修正のみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 Biome自動修正中..."
+bun biome check --write --unsafe .
+echo "✅ Biome修正完了"
+'''
+
+[tasks."fix:eslint"]
+description = "ESLint自動修正のみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 ESLint自動修正中..."
+bun eslint src --ext .ts,.tsx --fix || true
+echo "✅ ESLint修正完了"
+'''
+
+# ===============================================
+# ⛽ アトミック Sui環境・faucetタスク
+# ===============================================
+
+[tasks."sui:env"]
+description = "指定ネットワーク用にSui CLI設定"
+alias = "sui-env"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+NETWORK="${1:-testnet}"
+echo "🔧 Sui CLIを$NETWORK用に設定中..."
+sui client switch --env $NETWORK || sui client new-env --alias $NETWORK --rpc https://fullnode.$NETWORK.sui.io:443
+echo "✅ $NETWORK に切り替え完了"
+sui client active-env
+'''
+
+[tasks."sui:env-devnet"]
+description = "devnet用のSui CLI設定"
+alias = "sui-dev"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 Sui CLIをdevnet用に設定中..."
+sui client new-env --alias devnet --rpc https://fullnode.devnet.sui.io:443 || true
+sui client switch --env devnet
+echo "✅ devnetに切り替え完了"
+sui client active-env
+'''
+
+[tasks."faucet:testnet"]
+description = "testnet faucetをブラウザで開く"
 alias = "faucet"
 run = "open https://faucet.sui.io/?network=testnet"
 
-[tasks.faucet-devnet]
-description = "Request SUI tokens from devnet faucet via API"
+[tasks."faucet:devnet"]
+description = "devnet faucet API経由でSUIトークンを要求"
 alias = "faucet-dev"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-# Get active address from sui client
 ADDRESS=$(sui client active-address 2>/dev/null || echo "")
 if [ -z "$ADDRESS" ]; then
-    echo "❌ No active Sui address found. Run 'sui client' to set up your wallet."
+    echo "❌ アクティブなSuiアドレスが見つかりません。'sui client'でウォレットを設定してください。"
     exit 1
 fi
-echo "🚀 Requesting SUI tokens for address: $ADDRESS"
-echo "📡 Calling devnet faucet API..."
+echo "🚀 アドレス $ADDRESS にSUIトークンを要求中"
+echo "📡 devnet faucet APIを呼び出し中..."
 curl --location --request POST 'https://faucet.devnet.sui.io/v2/gas' \
     --header 'Content-Type: application/json' \
     --data-raw "{
@@ -187,57 +285,27 @@ curl --location --request POST 'https://faucet.devnet.sui.io/v2/gas' \
         }
     }"
 echo ""
-echo "✅ Faucet request completed!"
+echo "✅ faucet要求完了！"
 '''
 
-[tasks.sui-setup]
-description = "指定ネットワーク用にSui CLI設定 | 引数: [NETWORK] (default: testnet)"
-alias = "sui-env"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-NETWORK="${1:-testnet}"
-echo "🔧 Setting up Sui CLI for $NETWORK..."
-sui client switch --env $NETWORK || sui client new-env --alias $NETWORK --rpc https://fullnode.$NETWORK.sui.io:443
-echo "✅ Switched to $NETWORK"
-sui client active-env
-'''
+# ===============================================
+# 🔨 アトミック Sui Moveタスク
+# ===============================================
 
-# 引数: [NETWORK] (default: testnet)
-# 機能: 指定ネットワーク用のSui CLI設定
-# 対応ネットワーク: testnet, devnet, mainnet
-#
-# トラブルシューティング:
-# 1. 環境確認: sui client active-env
-# 2. ガス残量確認: sui client gas
-# 3. アドレス確認: sui client active-address
-
-[tasks.sui-setup-devnet]
-description = "Set up Sui CLI for devnet"
-alias = "sui-dev"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔧 Setting up Sui CLI for devnet..."
-sui client new-env --alias devnet --rpc https://fullnode.devnet.sui.io:443 || true
-sui client switch --env devnet
-echo "✅ Switched to devnet"
-sui client active-env
-'''
-
-[tasks.sui-build]
-description = "Build Move contract"
+[tasks."sui:build"]
+description = "Moveコントラクトのみビルド"
 alias = "move-build"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
 PACKAGE="${1:-counter}"
-echo "📦 Building $PACKAGE..."
+echo "📦 $PACKAGE ビルド中..."
 cd move/$PACKAGE && sui move build
+echo "✅ $PACKAGE ビルド完了"
 '''
 
-[tasks.sui-publish]
-description = "Publish Move contract"
+[tasks."sui:publish"]
+description = "Moveコントラクトのみパブリッシュ"
 alias = "move-publish"
 run = '''
 #!/usr/bin/env bash
@@ -245,134 +313,44 @@ set -euo pipefail
 PACKAGE="${1:-counter}"
 NETWORK="${2:-testnet}"
 
-echo "📦 Publishing $PACKAGE to $NETWORK..."
-mise run sui-setup $NETWORK
+echo "📦 $PACKAGE を $NETWORK にパブリッシュ中..."
+mise run sui:env $NETWORK
 cd move/$PACKAGE
 sui client publish --gas-budget {{vars.gas_budget}}
 
 echo ""
-echo "🔄 Next steps:"
-echo "  1. Manually update suigen-config.json with the Package ID"
-echo "  2. mise run gen    # Update ABI definitions"
-echo "  3. mise run dev    # Restart development server"
+echo "🔄 次の手順:"
+echo "  1. suigen-config.jsonにPackage IDを手動で更新"
+echo "  2. mise run gen    # ABI定義の更新"
+echo "  3. mise run dev    # 開発サーバー再起動"
 '''
 
-[tasks.deploy]
-description = "完全デプロイ: 環境設定→faucet→ビルド→パブリッシュ | 引数: [PACKAGE] [NETWORK]"
-alias = "d"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail  # エラー時即座停止、未定義変数エラー、パイプエラー検出
-PACKAGE="${1:-counter}"  # 第1引数 (default: counter)
-NETWORK="${2:-testnet}"  # 第2引数 (default: testnet)
-
-echo "🚀 Starting complete $NETWORK deployment for $PACKAGE..."
-echo ""
-echo "Step 1: Setting up $NETWORK..."
-# Sui CLIのネットワーク環境を指定されたネットワークに切り替え
-mise run sui-setup $NETWORK
-echo ""
-echo "Step 2: Getting SUI tokens..."
-# faucetからガストークンを取得（networkに応じて自動選択）
-mise run faucet-$NETWORK 2>/dev/null || mise run faucet
-echo ""
-echo "Step 3: Building $PACKAGE..."
-# Moveパッケージをビルド
-mise run sui-build $PACKAGE
-echo ""
-echo "Step 4: Publishing $PACKAGE to $NETWORK..."
-# パッケージをネットワークにパブリッシュ
-mise run sui-publish $PACKAGE $NETWORK
-echo ""
-echo "🎉 Deployment complete!"
-'''
-
-# 引数: [PACKAGE] [NETWORK] (default: counter testnet)
-# 機能: 環境設定からパブリッシュまでの完全自動化
-# 含まれる処理:
-# 1. Sui CLI環境設定 (mise run sui-setup)
-# 2. faucetからガス取得 (mise run faucet-*)
-# 3. Move契約ビルド (mise run sui-build)
-# 4. ネットワークへパブリッシュ (mise run sui-publish)
-#
-# 使用例:
-# mise run deploy counter testnet    # testnetにcounterをデプロイ
-# mise run deploy-devnet             # devnetにcounterをデプロイ
-#
-# デプロイ後の作業:
-# 1. suigen-config.jsonにPackage IDを手動で更新
-# 2. mise run codegen  # ABI型定義の再生成
-# 3. mise run dev      # 開発サーバー再起動
-
-[tasks.deploy-devnet]
-description = "Complete deployment to devnet (setup, faucet, build, publish)"
-alias = "deploy-dev"
+[tasks."move:format"]
+description = "Moveコードフォーマットのみ"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🚀 Starting complete devnet deployment..."
-echo ""
-echo "Step 1: Setting up devnet..."
-mise run sui-setup-devnet
-echo ""
-echo "Step 2: Getting SUI tokens..."
-mise run faucet-devnet
-echo ""
-echo "Step 3: Building contract..."
-mise run sui-build
-echo ""
-echo "Step 4: Publishing contract..."
-mise run sui-publish
-echo ""
-echo "🎉 Deployment complete!"
+echo "🎨 Moveコードフォーマット中..."
+bun @mysten/prettier-plugin-move --use-module-label=true -w move/**/*.move
+echo "✅ Moveコードフォーマット完了"
 '''
 
-[tasks.move-format]
-run = '''
-bunx @mysten/prettier-plugin-move --use-module-label=true -w move/**/*.move
-'''
-
-
-[tasks.test]
-description = "Run all tests with Bun"
-alias = "t"
-run = "bun test"
-
-# 全テスト実行
-# watch モード: mise run test-watch
-
-[tasks.test-watch]
-description = "Run tests in watch mode"
-alias = "tw"
-run = "bun test --watch"
-
-[tasks.codegen-abi]
-description = "Generate Sui ABI definitions from .deployed-packages.json"
-alias = ["gen-abi", "abigen"]
-run = "bun scripts/suigenv0.ts --config suigen-config.json --network testnet --output src/abi"
-
-
-[tasks.codegen]
-description = "Sui ABI型定義を生成 | 前提: デプロイ完了、suigen-config.json設定済み"
-alias = "gen"
+[tasks."clean:move"]
+description = "Move成果物のみクリーン"
 run = '''
 #!/usr/bin/env bash
-set -euo pipefail  # エラー時即座停止、未定義変数エラー、パイプエラー検出
-echo "🏗️  Generating types..."
-echo ""
-echo "Generating Sui ABI definitions..."
-# suigen-config.jsonからパッケージIDを読み込み、TypeScript型定義を生成
-bun scripts/suigenv0.ts --config suigen-config.json --network testnet --output src/abi
-echo ""
-echo "✅ Types generated successfully!"
+set -euo pipefail
+echo "🧹 Move成果物クリーン中..."
+rip **/build || true
+echo "✅ Moveクリーン完了"
 '''
 
-# 前提条件: Move契約のデプロイ完了、suigen-config.json設定済み
-# 機能: Sui GraphQL APIから型安全なTypeScript定義を生成
-# 出力: src/abi/*.ts
-# 使用時期: 契約デプロイ後、型定義が必要な時
-#
-# エラー時の対処:
-# 1. 設定ファイル確認: cat suigen-config.json
-# 2. 手動型生成: bun scripts/suigenv0.ts --config suigen-config.json --network testnet --output src/abi
+# ===============================================
+# 📄 アトミック コードジェネレーションタスク
+# ===============================================
+
+[tasks."codegen:abi"]
+description = "Sui ABI定義のみ生成"
+alias = ["gen-abi", "abigen"]
+run = "bun scripts/suigenv0.ts --config suigen-config.json --network testnet --output src/abi"
 

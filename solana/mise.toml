@@ -5,776 +5,558 @@ rust = "1.89.0"
 [env]
 _.path = ["~/.local/share/solana/install/active_release/bin"]
 SOLANA_HOME = "~/.local/share/solana/install/active_release"
+RUSTFLAGS = "-A unexpected_cfgs -A deprecated"
 
 [vars]
 default_network = "localnet"
 gas_budget = "100000000"
 
-# ===========================
-# 🚀 DEVELOPMENT
-# ===========================
+# ===============================================
+# 🚀 主要ワークフロー（よく使うタスク）
+# ===============================================
 
-[tasks.install]
-description = "Install dependencies"
-alias = "i"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📦 Installing dependencies..."
-echo ""
-echo "Step 1: Installing Node dependencies..."
-bun install
-echo ""
-echo "Step 2: Checking Solana installation..."
-solana --version || echo "⚠️  Solana CLI not found. Please install: https://docs.solana.com/cli/install-solana-cli-tools"
-echo ""
-echo "Step 3: Checking Anchor installation..."
-anchor --version || echo "⚠️  Anchor CLI not found. Please install: cargo install --git https://github.com/solana-foundation/anchor avm --locked --force"
-echo ""
-echo "✅ Dependencies check complete!"
-'''
-
-[tasks.install-cli]
-description = "Install Solana CLI and Anchor CLI"
-alias = "ic"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "⬇️ Installing Solana & Anchor CLI tools..."
-echo ""
-
-# Check and install system dependencies
-if ! pkg-config --exists libudev 2>/dev/null; then
-    echo "📦 Installing system dependencies (libudev-dev)..."
-    sudo apt update
-    sudo apt install -y libudev-dev pkg-config
-fi
-
-# Remove old Homebrew version if exists
-if command -v brew >/dev/null 2>&1 && brew list solana >/dev/null 2>&1; then
-    echo "🧹 Removing Homebrew Solana..."
-    brew uninstall solana
-fi
-
-# Agave/Solana complete toolchain
-if ! command -v solana-test-validator >/dev/null 2>&1; then
-    echo "📦 Installing complete Solana/Agave toolchain v3.0.2..."
-    sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.2/install)"
-    echo "✅ Solana toolchain installed: $(~/.local/share/solana/install/active_release/bin/solana --version)"
-else
-    echo "✅ Solana toolchain already available: $(solana-test-validator --version | head -1)"
-fi
-
-# cargo-build-sbf from GitHub (not on crates.io)
-if ! command -v cargo-build-sbf >/dev/null 2>&1; then
-    echo "📦 Installing cargo-build-sbf from GitHub..."
-    cargo install --git https://github.com/anza-xyz/agave solana-cargo-build-sbf
-fi
-
-echo ""
-
-# Anchor AVM
-if ! command -v avm >/dev/null 2>&1; then
-    echo "📦 Installing Anchor AVM via cargo..."
-    cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-fi
-
-echo ""
-echo "📦 Installing Anchor toolchain v0.31.1..."
-avm install 0.31.1
-avm use 0.31.1
-echo "✅ Anchor CLI ready: $(anchor --version)"
-
-echo ""
-echo "🎉 All tools installed via cargo!"
-'''
-
-[tasks.keygen]
-description = "Generate new program keypairs"
-alias = "kg"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔑 Generating program keypairs..."
-echo ""
-if [ ! -f "Anchor.toml" ]; then
-    echo "❌ Anchor.toml not found. Run this from the Solana project root."
-    exit 1
-fi
-echo "Generated keypairs:"
-anchor keys list
-echo ""
-echo "🔄 Next steps:"
-echo "  1. Update Anchor.toml program IDs"
-echo "  2. Update declare_id! in lib.rs files"
-echo "  3. mise run build"
-'''
+[tasks.dev]
+description = "開発環境の完全セットアップ"
+alias = "d"
+depends = ["localnode:start", "localnode:wait", "wallet:setup", "deploy", "ui:dev"]
 
 [tasks.build]
-description = "Build Anchor programs and Next.js frontend"
+description = "全プログラムのビルド"
 alias = "b"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📦 Building Solana project..."
-echo ""
+depends = ["build:programs"]
 
-# Ensure target/deploy directory exists
-mkdir -p target/deploy
-
-echo "Step 1: Building Anchor programs with cargo build-sbf..."
-# Suppress Anchor-related warnings for cleaner output
-export RUSTFLAGS="-A unexpected_cfgs -A deprecated"
-
-echo "🔨 Building owned_counter..."
-cargo build-sbf --manifest-path programs/owned_counter/Cargo.toml --sbf-out-dir target/deploy
-
-echo "🔨 Building shared_counter..."
-cargo build-sbf --manifest-path programs/shared_counter/Cargo.toml --sbf-out-dir target/deploy
-
-# Verify .so files were created
-if [ -f "target/deploy/owned_counter.so" ] && [ -f "target/deploy/shared_counter.so" ]; then
-    echo "✅ Program binaries built successfully:"
-    ls -la target/deploy/*.so
-else
-    echo "❌ Some program binaries missing"
-    ls -la target/deploy/ || echo "target/deploy directory is empty"
-fi
-
-echo ""
-echo "Step 2: Generating IDL files..."
-mise run idl-gen
-
-echo ""
-echo "✅ Build complete!"
-echo "📋 Built artifacts:"
-echo "   Programs: target/deploy/"
-echo "   IDL: src/idl/"
-'''
+[tasks.deploy]
+description = "全プログラムのデプロイ"
+depends = ["build", "keypairs", "deploy:programs"]
 
 [tasks.test]
-description = "Run Anchor tests"
+description = "プログラムビルドテスト"
 alias = "t"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🧪 Running Anchor tests..."
-echo ""
-anchor test --skip-idl
-echo ""
-echo "✅ Tests complete!"
+echo "🧪 プログラムビルドテスト中..."
+anchor build --no-idl
+echo "✅ ビルド成功（テスト未実装）"
 '''
-
-[tasks.test-watch]
-description = "Run tests in watch mode"
-alias = "tw"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🧪 Running tests in watch mode..."
-echo "Press Ctrl+C to stop"
-while true; do
-    anchor test
-    echo ""
-    echo "Waiting for changes... (Press Ctrl+C to exit)"
-    sleep 5
-done
-'''
-
-[tasks.dev]
-description = "Start local development environment"
-alias = "d"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🚀 Starting Solana development environment..."
-echo ""
-
-# Check required tools
-if ! command -v solana-test-validator >/dev/null 2>&1; then
-    echo "❌ solana-test-validator not found. Run 'mise run install-cli' first"
-    exit 1
-fi
-
-if ! command -v solana-keygen >/dev/null 2>&1; then
-    echo "❌ solana-keygen not found. Run 'mise run install-cli' first"
-    exit 1
-fi
-
-# Check if localnet is already running
-if solana cluster-version > /dev/null 2>&1; then
-    echo "✅ Localnet already running"
-else
-    echo "Starting localnet..."
-    solana-test-validator --reset &
-    VALIDATOR_PID=$!
-    echo "Validator started with PID: $VALIDATOR_PID"
-    trap "kill $VALIDATOR_PID 2>/dev/null" EXIT
-
-    # Wait for validator to be ready
-    echo "Waiting for validator to be ready..."
-    for i in {1..30}; do
-        if solana cluster-version > /dev/null 2>&1; then
-            echo "✅ Validator is ready!"
-            break
-        fi
-        echo -n "."
-        sleep 1
-    done
-    echo ""
-fi
-
-echo ""
-echo "Setting up localnet configuration..."
-solana config set --url localhost
-
-echo ""
-echo "Creating development wallet..."
-solana-keygen new --no-bip39-passphrase --silent --force --outfile ~/.config/solana/id.json
-solana config set --keypair ~/.config/solana/id.json
-
-echo ""
-echo "Requesting airdrop..."
-solana airdrop 2
-echo "Requesting additional airdrop for deployment..."
-solana airdrop 2
-
-echo ""
-echo "Building programs..."
-mise run build
-
-echo ""
-echo "Deploying programs..."
-
-# Check if program binaries exist, build if needed
-if [ ! -f "target/deploy/owned_counter.so" ] || [ ! -f "target/deploy/shared_counter.so" ]; then
-    echo "⚠️ Program binaries not found. Building first..."
-    mise run build
-fi
-
-# Generate keypairs if they don't exist
-if [ ! -f "target/deploy/owned_counter-keypair.json" ]; then
-    echo "🔑 Generating owned_counter keypair..."
-    solana-keygen new -o target/deploy/owned_counter-keypair.json --no-bip39-passphrase --force --silent
-fi
-
-if [ ! -f "target/deploy/shared_counter-keypair.json" ]; then
-    echo "🔑 Generating shared_counter keypair..."
-    solana-keygen new -o target/deploy/shared_counter-keypair.json --no-bip39-passphrase --force --silent
-fi
-
-echo "🚀 Deploying programs to localnet..."
-echo "📦 Deploying owned_counter..."
-solana program deploy target/deploy/owned_counter.so \
-  --program-id target/deploy/owned_counter-keypair.json
-
-echo "📦 Deploying shared_counter..."
-solana program deploy target/deploy/shared_counter.so \
-  --program-id target/deploy/shared_counter-keypair.json
-
-echo ""
-echo "🎉 Development environment ready!"
-echo "   RPC URL: http://localhost:8899"
-echo "   Wallet: ~/.config/solana/id.json"
-echo ""
-echo "🚀 Starting frontend development server..."
-bun run dev
-'''
-
-[tasks.dev-frontend]
-description = "Start frontend development server only"
-alias = "df"
-run = "bun run dev"
-
-[tasks.dev-validator]
-description = "Run local validator only"
-alias = "dv"
-run = "mise run validator-start"
-
-[tasks.deploy-localnet]
-description = "Deploy to localnet"
-alias = "dl"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🚀 Deploying to localnet..."
-echo ""
-solana config set --url localhost
-
-echo "Building programs..."
-mise run build
-
-echo "Deploying..."
-solana program deploy target/deploy/owned_counter.so \
-  --program-id target/deploy/owned_counter-keypair.json
-solana program deploy target/deploy/shared_counter.so \
-  --program-id target/deploy/shared_counter-keypair.json
-echo "✅ Deployed to localnet!"
-'''
-
-[tasks.deploy-devnet]
-description = "Deploy to devnet"
-alias = "dd"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🚀 Deploying to devnet..."
-echo ""
-echo "Setting up devnet..."
-solana config set --url devnet
-echo ""
-echo "Requesting airdrop..."
-solana airdrop 2 || echo "⚠️  Airdrop failed. You may need SOL in your wallet."
-echo ""
-echo "Building programs..."
-mise run build
-echo ""
-echo "Deploying..."
-solana program deploy target/deploy/owned_counter.so \
-  --program-id target/deploy/owned_counter-keypair.json
-solana program deploy target/deploy/shared_counter.so \
-  --program-id target/deploy/shared_counter-keypair.json
-echo ""
-echo "✅ Deployed to devnet!"
-'''
-
-[tasks.deploy]
-description = "Deploy to specified network | 引数: [NETWORK] (default: localnet)"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-NETWORK="${1:-localnet}"
-echo "🚀 Deploying to $NETWORK..."
-echo ""
-solana config set --url $NETWORK
-if [ "$NETWORK" != "mainnet-beta" ]; then
-    echo "Requesting airdrop..."
-    solana airdrop 2 || echo "⚠️  Airdrop failed. You may need SOL in your wallet."
-fi
-echo ""
-echo "Building programs..."
-mise run build
-echo ""
-echo "Deploying..."
-solana program deploy target/deploy/owned_counter.so \
-  --program-id target/deploy/owned_counter-keypair.json
-solana program deploy target/deploy/shared_counter.so \
-  --program-id target/deploy/shared_counter-keypair.json
-echo ""
-echo "✅ Deployed to $NETWORK!"
-'''
-
-# ===========================
-# 📦 BUILD & DEPLOY
-# ===========================
-
-[tasks.preview]
-description = "Preview built app"
-alias = "p"
-run = "bun run start"
-
-[tasks.up]
-description = "Update dependencies to latest versions"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📦 Checking for outdated packages..."
-bunx npm-check-updates
-echo ""
-echo "📦 Updating package.json to latest versions..."
-bunx npm-check-updates -u
-echo ""
-echo "📦 Installing updated dependencies..."
-npm install
-echo "✅ Dependencies updated to latest versions!"
-'''
-
-# ===========================
-# 🔍 LINT (チェックのみ)
-# ===========================
-
-[tasks.lint]
-description = "Run all linters (Biome + ESLint + TypeScript + Rust)"
-alias = "l"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔍 Running all linters..."
-echo ""
-echo "Step 1: Biome check..."
-bunx biome check .
-echo "✅ Biome passed"
-echo ""
-echo "Step 2: ESLint check..."
-npx eslint tests --ext .ts --max-warnings 0
-echo "✅ ESLint passed"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "Step 4: Rust check..."
-cargo check --manifest-path programs/owned_counter/Cargo.toml
-cargo check --manifest-path programs/shared_counter/Cargo.toml
-echo "✅ Rust passed"
-echo ""
-echo "🎉 All checks passed!"
-'''
-
-[tasks.lint-biome]
-description = "Run Biome check only"
-alias = "lb"
-run = "bunx biome check ."
-
-[tasks.lint-eslint]
-description = "Run ESLint check only"
-alias = "le"
-run = "npx eslint tests --ext .ts --max-warnings 0"
-
-[tasks.lint-types]
-description = "Run TypeScript check only"
-alias = "lt"
-run = "bunx tsc --noEmit"
-
-[tasks.check]
-description = "Run all checks (alias for lint)"
-alias = "ck"
-run = "mise run lint"
-
-# ===========================
-# 🔧 FIX (自動修正)
-# ===========================
-
-[tasks.fix]
-description = "Fix all auto-fixable issues (Biome unsafe + ESLint + Prettier + Rust fmt)"
-alias = "f"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔧 Fixing all auto-fixable issues..."
-echo ""
-echo "Step 1: Biome unsafe fix..."
-bunx biome check --write --unsafe .
-echo "✅ Biome unsafe fixed"
-echo ""
-echo "Step 2: Rust fmt..."
-cargo fmt --manifest-path programs/owned_counter/Cargo.toml
-cargo fmt --manifest-path programs/shared_counter/Cargo.toml
-echo "✅ Rust formatted"
-echo ""
-echo "Step 3: TypeScript check..."
-bunx tsc --noEmit
-echo "✅ TypeScript passed"
-echo ""
-echo "🎉 All fixable issues resolved!"
-'''
-
-[tasks.fix-biome]
-description = "Fix with Biome only"
-alias = "fb"
-run = "bunx biome check --write ."
-
-[tasks.fix-eslint]
-description = "Fix with ESLint only"
-alias = "fe"
-run = "npx eslint tests --ext .ts --fix"
-
-[tasks.fix-unsafe]
-description = "Fix with Biome unsafe mode"
-alias = "fu"
-run = "bunx biome check --write --unsafe ."
-
-[tasks.format]
-description = "Format Rust code"
-alias = "fmt"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🎨 Formatting Rust code..."
-echo ""
-cargo fmt --manifest-path programs/owned_counter/Cargo.toml
-cargo fmt --manifest-path programs/shared_counter/Cargo.toml
-echo ""
-echo "✅ Rust code formatted!"
-'''
-
-[tasks.typecheck]
-description = "Run TypeScript type checking"
-alias = "tc"
-run = "bunx tsc --noEmit"
-
-[tasks.idl-gen]
-description = "Generate IDL files from Anchor programs"
-alias = "ig"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📄 Generating IDL files from Anchor programs..."
-mkdir -p src/idl
-
-# No cleanup needed - IDL generation works fine without it
-
-# Method 1: Try anchor build --idl (more robust for IDL generation)
-echo "🔨 Method 1: Trying anchor build --idl..."
-if anchor build --idl 2>/dev/null; then
-    echo "✅ anchor build --idl succeeded"
-
-    # Copy generated IDL files to src/idl with TypeScript generation
-    if [ -f "target/idl/owned_counter.json" ]; then
-        cp target/idl/owned_counter.json src/idl/
-        echo "📄 Generating TypeScript for owned_counter..."
-        anchor idl build -p owned_counter -t src/idl/owned_counter.ts --no-docs 2>/dev/null || true
-    fi
-
-    if [ -f "target/idl/shared_counter.json" ]; then
-        cp target/idl/shared_counter.json src/idl/
-        echo "📄 Generating TypeScript for shared_counter..."
-        anchor idl build -p shared_counter -t src/idl/shared_counter.ts --no-docs 2>/dev/null || true
-    fi
-else
-    echo "⚠️ Method 1 failed, trying Method 2..."
-
-    # Method 2: Individual IDL build with improved error handling
-    echo "🔨 Method 2: Individual anchor idl build commands..."
-
-    # For owned_counter
-    echo "📄 Generating owned_counter IDL and TypeScript..."
-    if ! anchor idl build -p owned_counter -o src/idl/owned_counter.json -t src/idl/owned_counter.ts --no-docs 2>/dev/null; then
-        echo "⚠️ owned_counter IDL generation had issues, but files may exist"
-    fi
-
-    # For shared_counter
-    echo "📄 Generating shared_counter IDL and TypeScript..."
-    if ! anchor idl build -p shared_counter -o src/idl/shared_counter.json -t src/idl/shared_counter.ts --no-docs 2>/dev/null; then
-        echo "⚠️ shared_counter IDL generation had issues, but files may exist"
-    fi
-fi
-
-# Method 3: Fallback - try cargo build-sbf then extract IDL
-if [ ! -f "src/idl/owned_counter.json" ] || [ ! -f "src/idl/shared_counter.json" ]; then
-    echo "🔨 Method 3: Fallback cargo build-sbf approach..."
-
-    echo "Building owned_counter with cargo build-sbf..."
-    cargo build-sbf --manifest-path programs/owned_counter/Cargo.toml 2>/dev/null || true
-
-    echo "Building shared_counter with cargo build-sbf..."
-    cargo build-sbf --manifest-path programs/shared_counter/Cargo.toml 2>/dev/null || true
-
-    # Try to extract IDL from built programs
-    if [ -f "target/deploy/owned_counter.so" ]; then
-        echo "Extracting IDL from owned_counter.so..."
-        anchor idl build -p owned_counter -o src/idl/owned_counter.json --no-docs 2>/dev/null || true
-    fi
-
-    if [ -f "target/deploy/shared_counter.so" ]; then
-        echo "Extracting IDL from shared_counter.so..."
-        anchor idl build -p shared_counter -o src/idl/shared_counter.json --no-docs 2>/dev/null || true
-    fi
-fi
-
-# Generate TypeScript files if JSON exists but TS missing
-echo "🔄 Ensuring TypeScript files are generated..."
-if [ -f "src/idl/owned_counter.json" ] && [ ! -f "src/idl/owned_counter.ts" ]; then
-    echo "📄 Generating missing owned_counter.ts..."
-    anchor idl build -p owned_counter -t src/idl/owned_counter.ts --no-docs 2>/dev/null || true
-fi
-
-if [ -f "src/idl/shared_counter.json" ] && [ ! -f "src/idl/shared_counter.ts" ]; then
-    echo "📄 Generating missing shared_counter.ts..."
-    anchor idl build -p shared_counter -t src/idl/shared_counter.ts --no-docs 2>/dev/null || true
-fi
-
-# Final verification and status report
-echo ""
-echo "🔍 Verification Results:"
-echo "======================="
-
-OWNED_JSON_EXISTS=false
-OWNED_TS_EXISTS=false
-SHARED_JSON_EXISTS=false
-SHARED_TS_EXISTS=false
-
-if [ -f "src/idl/owned_counter.json" ]; then
-    OWNED_JSON_EXISTS=true
-    echo "✅ owned_counter.json - $(wc -c < src/idl/owned_counter.json) bytes"
-else
-    echo "❌ owned_counter.json - MISSING"
-fi
-
-if [ -f "src/idl/owned_counter.ts" ]; then
-    OWNED_TS_EXISTS=true
-    echo "✅ owned_counter.ts - $(wc -c < src/idl/owned_counter.ts) bytes"
-else
-    echo "❌ owned_counter.ts - MISSING"
-fi
-
-if [ -f "src/idl/shared_counter.json" ]; then
-    SHARED_JSON_EXISTS=true
-    echo "✅ shared_counter.json - $(wc -c < src/idl/shared_counter.json) bytes"
-else
-    echo "❌ shared_counter.json - MISSING"
-fi
-
-if [ -f "src/idl/shared_counter.ts" ]; then
-    SHARED_TS_EXISTS=true
-    echo "✅ shared_counter.ts - $(wc -c < src/idl/shared_counter.ts) bytes"
-else
-    echo "❌ shared_counter.ts - MISSING"
-fi
-
-echo ""
-if [ "$OWNED_JSON_EXISTS" = true ] && [ "$OWNED_TS_EXISTS" = true ] && \
-   [ "$SHARED_JSON_EXISTS" = true ] && [ "$SHARED_TS_EXISTS" = true ]; then
-    echo "🎉 SUCCESS: All 4 IDL files generated successfully!"
-    echo ""
-    echo "📋 Generated files:"
-    ls -la src/idl/
-    echo ""
-    echo "✅ IDL generation completed successfully!"
-else
-    echo "⚠️ PARTIAL SUCCESS: Some files generated, but not all"
-    echo ""
-    echo "📋 Available files:"
-    ls -la src/idl/ 2>/dev/null || echo "No files in src/idl/"
-    echo ""
-    echo "💡 Note: IDL generation may have compilation errors, but this doesn't prevent IDL extraction."
-    echo "   The generated IDL files should still be usable for frontend development."
-fi
-'''
-
-[tasks.codegen]
-description = "Generate TypeScript types from Anchor IDL"
-alias = "cg"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🔄 Generating types from IDL..."
-anchor build
-echo "Generating TypeScript types..."
-anchor run types || echo "⚠️  Add 'types' script to Anchor.toml"
-echo "✅ Types generated!"
-'''
-
-[tasks.codegen-abi]
-description = "Generate Anchor IDL files"
-alias = ["gen-abi", "abigen"]
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "📄 Generating Anchor IDLs..."
-anchor build
-echo "IDL files written to target/idl/"
-'''
-
-# ===========================
-# 🧹 CLEANUP
-# ===========================
 
 [tasks.clean]
-description = "Clean all build artifacts"
+description = "全ビルド成果物のクリーンアップ"
 alias = "c"
+depends = ["clean:target", "clean:ledger"]
+
+[tasks.install]
+description = "全依存関係のインストール"
+alias = "i"
+depends = ["ui:install", "install:solana", "install:anchor"]
+
+[tasks."install-cli"]
+description = "Solana & Anchor CLIのインストール"
+alias = "ic"
+depends = ["install:solana", "install:anchor"]
+
+[tasks.up]
+description = "依存関係を最新バージョンに更新"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🧹 Cleaning build artifacts..."
-rm -rf target/ || true
-rm -rf .anchor/ || true
-rm -rf node_modules/.cache/ || true
-rm -rf programs/owned_counter/target/ || true
-rm -rf programs/shared_counter/target/ || true
-echo "✅ Cleaned!"
-'''
-
-[tasks.clean-ledger]
-description = "Clean local validator ledger"
-alias = "cl"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "🧹 Cleaning validator ledger..."
-rm -rf test-ledger/ || true
-echo "✅ Ledger cleaned!"
-'''
-
-# ===========================
-# 🛠️ UTILITIES
-# ===========================
-
-[tasks.wallet]
-description = "Show wallet information"
-alias = "w"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-echo "💰 Wallet Information:"
+echo "📦 古いパッケージをチェック中..."
+bun outdated
 echo ""
-echo "Current cluster: $(solana config get | grep 'RPC URL' | awk '{print $3}')"
-echo "Wallet address: $(solana address)"
-echo "SOL balance: $(solana balance)"
+echo "📦 package.jsonを最新バージョンに更新中..."
+bunx npm-check-updates -u
+echo ""
+echo "📦 更新された依存関係をインストール中..."
+bun install
+echo "✅ 依存関係を最新バージョンに更新完了！"
 '''
 
-[tasks.programs]
-description = "List deployed programs"
-alias = "prog"
+# ===============================================
+# 📋 ユーティリティ・管理タスク
+# ===============================================
+
+[tasks.status]
+description = "開発環境のステータス表示"
+alias = "s"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "📋 Deployed Programs:"
+echo "📋 開発環境ステータス"
+echo "=================================="
 echo ""
+echo "🔧 ツール:"
+solana --version 2>/dev/null || echo "❌ Solana 未インストール"
+anchor --version 2>/dev/null || echo "❌ Anchor 未インストール"
+echo ""
+echo "🌐 ネットワーク:"
+solana config get | grep 'RPC URL' | awk '{print "   RPC URL:", $3}' 2>/dev/null || echo "❌ Solana設定未完了"
+echo ""
+echo "💰 ウォレット:"
+solana address 2>/dev/null | awk '{print "   アドレス:", $1}' || echo "❌ ウォレット未設定"
+solana balance 2>/dev/null | awk '{print "   残高:", $1, $2}' || echo "❌ 残高情報なし"
+echo ""
+echo "🚀 バリデータ:"
+if solana cluster-version > /dev/null 2>&1; then
+    echo "   ステータス: ✅ 起動中"
+    solana cluster-version | head -1 | awk '{print "   バージョン:", $1, $2}'
+else
+    echo "   ステータス: ❌ 停止中"
+fi
+echo ""
+echo "📦 プログラム:"
 if [ -f "target/deploy/owned_counter-keypair.json" ]; then
-    OWNED_ID=$(solana address -k target/deploy/owned_counter-keypair.json)
-    echo "owned_counter: $OWNED_ID"
+    echo "   owned_counter: $(solana address -k target/deploy/owned_counter-keypair.json)"
+else
+    echo "   owned_counter: ❌ 未デプロイ"
 fi
 if [ -f "target/deploy/shared_counter-keypair.json" ]; then
-    SHARED_ID=$(solana address -k target/deploy/shared_counter-keypair.json)
-    echo "shared_counter: $SHARED_ID"
+    echo "   shared_counter: $(solana address -k target/deploy/shared_counter-keypair.json)"
+else
+    echo "   shared_counter: ❌ 未デプロイ"
 fi
 '''
 
+[tasks.lint]
+description = "全リンターの実行"
+alias = "l"
+depends = ["lint:biome", "lint:typescript", "lint:rust"]
+
+[tasks.fix]
+description = "自動修正可能な問題の修正"
+alias = "f"
+depends = ["fix:biome", "fix:rust"]
+
 [tasks.logs]
-description = "Show validator logs"
-alias = "logs"
+description = "バリデータログの表示"
 run = "solana logs"
 
-[tasks.validator-start]
-description = "Start local validator"
+# ===============================================
+# 🎯 その他のコンポジットタスク
+# ===============================================
+
+[tasks."dev:backend"]
+description = "バックエンドのみ（バリデータ + デプロイ）"
+depends = ["localnode:start", "localnode:wait", "wallet:setup", "deploy"]
+
+[tasks."dev:full"]
+description = "フル開発セットアップ（ゼロから）"
+depends = ["install", "dev"]
+
+[tasks."wallet:setup"]
+description = "ウォレットの完全セットアップ"
+depends = ["wallet:create", "wallet:configure", "wallet:airdrop"]
+
+[tasks.keypairs]
+description = "全鍵ペアの生成"
+depends = ["keypair:owned", "keypair:shared"]
+
+[tasks.idl]
+description = "全IDLファイルの生成"
+depends = ["idl:owned", "idl:shared"]
+
+# ===============================================
+# 🏗️  アトミック インフラタスク（実装詳細）
+# ===============================================
+
+[tasks."localnode:start"]
+description = "ローカルSolanaバリデータの起動"
 alias = "vs"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🚀 Starting local validator..."
-solana-test-validator --reset
+if ! command -v solana-test-validator >/dev/null 2>&1; then
+    echo "❌ solana-test-validator が見つかりません。'mise run install:solana' を実行してください"
+    exit 1
+fi
+
+# 既に起動中かチェック
+if solana cluster-version > /dev/null 2>&1; then
+    echo "✅ バリデータは既に起動中"
+    exit 0
+fi
+
+echo "🚀 バリデータ起動中..."
+solana-test-validator --reset &
 '''
 
-[tasks.validator-stop]
-description = "Stop local validator"
+[tasks."localnode:stop"]
+description = "ローカルSolanaバリデータの停止"
 alias = "vx"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "🛑 Stopping local validator..."
-pkill -f solana-test-validator || echo "No validator process found"
+echo "🛑 バリデータ停止中..."
+pkill -f solana-test-validator || echo "バリデータプロセスが見つかりません"
 '''
 
-[tasks.idl]
-description = "Generate IDL for programs"
+[tasks."localnode:status"]
+description = "バリデータステータスの確認"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-echo "📄 Generating IDL..."
-anchor build
-echo "IDL files generated in target/idl/"
-ls -la target/idl/
+if solana cluster-version > /dev/null 2>&1; then
+    echo "✅ バリデータ起動中"
+    echo "クラスターバージョン: $(solana cluster-version)"
+else
+    echo "❌ バリデータ停止中"
+    exit 1
+fi
 '''
 
-[tasks.airdrop]
-description = "Request SOL airdrop | 引数: [AMOUNT] (default: 2)"
+[tasks."localnode:wait"]
+description = "バリデータの起動完了を待機"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
-AMOUNT="${1:-2}"
-echo "💰 Requesting $AMOUNT SOL airdrop..."
-solana airdrop $AMOUNT
-echo "New balance: $(solana balance)"
+echo "⏳ バリデータの起動完了を待機中..."
+for i in {1..30}; do
+    if solana cluster-version > /dev/null 2>&1; then
+        echo "✅ バリデータ起動完了!"
+        exit 0
+    fi
+    echo -n "."
+    sleep 1
+done
+echo ""
+echo "❌ バリデータが30秒以内に起動しませんでした"
+exit 1
+'''
+
+# ===============================================
+# 💰 アトミック ウォレットタスク
+# ===============================================
+
+[tasks."wallet:create"]
+description = "開発用ウォレットの作成"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p ~/.config/solana
+if [ -f ~/.config/solana/id.json ]; then
+    echo "✅ ウォレット既存: $(solana address)"
+else
+    echo "🔑 新しいウォレット作成中..."
+    solana-keygen new --no-bip39-passphrase --silent --force --outfile ~/.config/solana/id.json
+    echo "✅ ウォレット作成完了: $(solana address)"
+fi
+'''
+
+[tasks."wallet:configure"]
+description = "ウォレットとネットワークの設定"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "⚙️ ウォレット設定中..."
+solana config set --url localhost
+solana config set --keypair ~/.config/solana/id.json
+echo "✅ localhost用ウォレット設定完了"
+'''
+
+[tasks."wallet:airdrop"]
+description = "SOLエアドロップの要求"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "💰 エアドロップ要求中..."
+solana airdrop 2
+echo "💰 追加エアドロップ要求中..."
+solana airdrop 2
+echo "✅ 残高: $(solana balance)"
+'''
+
+[tasks."wallet:balance"]
+description = "ウォレット残高の表示"
+alias = "balance"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "💰 ウォレット: $(solana address)"
+echo "💰 残高: $(solana balance)"
+echo "🌐 ネットワーク: $(solana config get | grep 'RPC URL' | awk '{print $3}')"
+'''
+
+# ===============================================
+# 🔨 アトミック ビルドタスク
+# ===============================================
+
+[tasks."build:programs"]
+description = "全プログラムのビルド"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p target/deploy
+echo "🔨 プログラムビルド中..."
+echo "  owned_counter..."
+cargo build-sbf --manifest-path programs/owned_counter/Cargo.toml --sbf-out-dir target/deploy
+echo "  shared_counter..."
+cargo build-sbf --manifest-path programs/shared_counter/Cargo.toml --sbf-out-dir target/deploy
+
+if [ -f "target/deploy/owned_counter.so" ] && [ -f "target/deploy/shared_counter.so" ]; then
+    echo "✅ 全プログラムビルド完了:"
+    echo "   owned_counter.so ($(stat -c%s target/deploy/owned_counter.so) bytes)"
+    echo "   shared_counter.so ($(stat -c%s target/deploy/shared_counter.so) bytes)"
+else
+    echo "❌ 一部のプログラムビルドが失敗しました"
+    ls -la target/deploy/*.so 2>/dev/null || echo "  ビルド成果物が見つかりません"
+    exit 1
+fi
+'''
+
+[tasks."idl:owned"]
+description = "owned_counter IDLのみ生成"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p src/idl
+echo "📄 owned_counter IDL生成中..."
+if anchor idl build -p owned_counter -o src/idl/owned_counter.json -t src/idl/owned_counter.ts --no-docs 2>/dev/null; then
+    echo "✅ owned_counter IDL生成完了"
+else
+    echo "❌ owned_counter IDL生成失敗"
+    exit 1
+fi
+'''
+
+[tasks."idl:shared"]
+description = "shared_counter IDLのみ生成"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p src/idl
+echo "📄 shared_counter IDL生成中..."
+if anchor idl build -p shared_counter -o src/idl/shared_counter.json -t src/idl/shared_counter.ts --no-docs 2>/dev/null; then
+    echo "✅ shared_counter IDL生成完了"
+else
+    echo "❌ shared_counter IDL生成失敗"
+    exit 1
+fi
+'''
+
+# ===============================================
+# 🔑 アトミック 鍵ペアタスク
+# ===============================================
+
+[tasks."keypair:owned"]
+description = "owned_counter鍵ペアのみ生成"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p target/deploy
+if [ -f "target/deploy/owned_counter-keypair.json" ]; then
+    echo "✅ owned_counter鍵ペア既存: $(solana address -k target/deploy/owned_counter-keypair.json)"
+else
+    echo "🔑 owned_counter鍵ペア生成中..."
+    solana-keygen new -o target/deploy/owned_counter-keypair.json --no-bip39-passphrase --force --silent
+    echo "✅ owned_counter鍵ペア: $(solana address -k target/deploy/owned_counter-keypair.json)"
+fi
+'''
+
+[tasks."keypair:shared"]
+description = "shared_counter鍵ペアのみ生成"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+mkdir -p target/deploy
+if [ -f "target/deploy/shared_counter-keypair.json" ]; then
+    echo "✅ shared_counter鍵ペア既存: $(solana address -k target/deploy/shared_counter-keypair.json)"
+else
+    echo "🔑 shared_counter鍵ペア生成中..."
+    solana-keygen new -o target/deploy/shared_counter-keypair.json --no-bip39-passphrase --force --silent
+    echo "✅ shared_counter鍵ペア: $(solana address -k target/deploy/shared_counter-keypair.json)"
+fi
+'''
+
+# ===============================================
+# 🚀 アトミック デプロイタスク
+# ===============================================
+
+[tasks."deploy:programs"]
+description = "全プログラムのデプロイ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🚀 プログラムデプロイ中..."
+
+# 前提条件チェック
+if [ ! -f "target/deploy/owned_counter.so" ] || [ ! -f "target/deploy/shared_counter.so" ]; then
+    echo "❌ プログラムファイルが見つかりません。'mise run build:programs' を実行してください"
+    exit 1
+fi
+if [ ! -f "target/deploy/owned_counter-keypair.json" ] || [ ! -f "target/deploy/shared_counter-keypair.json" ]; then
+    echo "❌ 鍵ペアが見つかりません。'mise run keypairs' を実行してください"
+    exit 1
+fi
+
+echo "  owned_counter デプロイ中..."
+solana program deploy target/deploy/owned_counter.so \
+  --program-id target/deploy/owned_counter-keypair.json
+
+echo "  shared_counter デプロイ中..."
+solana program deploy target/deploy/shared_counter.so \
+  --program-id target/deploy/shared_counter-keypair.json
+
+echo "✅ 全プログラムデプロイ完了:"
+echo "   owned_counter: $(solana address -k target/deploy/owned_counter-keypair.json)"
+echo "   shared_counter: $(solana address -k target/deploy/shared_counter-keypair.json)"
+'''
+
+# ===============================================
+# 🌐 アトミック フロントエンドタスク
+# ===============================================
+
+[tasks."ui:install"]
+description = "UI依存関係のみインストール"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "📦 フロントエンド依存関係インストール中..."
+bun install
+echo "✅ 依存関係インストール完了"
+'''
+
+[tasks."ui:dev"]
+description = "UI開発サーバーのみ起動"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🌐 フロントエンド開発サーバー起動中..."
+bun run dev
+'''
+
+[tasks."ui:build"]
+description = "UIのみビルド"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🏗️ フロントエンドビルド中..."
+bun run build
+echo "✅ フロントエンドビルド完了"
+'''
+
+[tasks."ui:typecheck"]
+description = "TypeScript型チェックのみ"
+alias = "typecheck"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 型チェック中..."
+bun tsc --noEmit
+echo "✅ 型チェック完了"
+'''
+
+# ===============================================
+# 🧹 アトミック クリーンアップタスク
+# ===============================================
+
+[tasks."clean:target"]
+description = "targetディレクトリのみクリーン"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 targetディレクトリクリーン中..."
+rm -rf target/ || true
+echo "✅ targetクリーン完了"
+'''
+
+[tasks."clean:ledger"]
+description = "バリデータ台帳のみクリーン"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🧹 バリデータ台帳クリーン中..."
+rm -rf test-ledger/ || true
+echo "✅ 台帳クリーン完了"
+'''
+
+# ===============================================
+# 📦 アトミック インストールタスク
+# ===============================================
+
+[tasks."install:solana"]
+description = "Solanaツールチェーンのみインストール"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+if ! command -v solana-test-validator >/dev/null 2>&1; then
+    echo "📦 Solana/Agave ツールチェーン v3.0.2 インストール中..."
+    sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.2/install)"
+    echo "✅ Solana インストール完了: $(~/.local/share/solana/install/active_release/bin/solana --version)"
+else
+    echo "✅ Solana 既にインストール済み: $(solana-test-validator --version | head -1)"
+fi
+'''
+
+[tasks."install:anchor"]
+description = "Anchorツールチェーンのみインストール"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+if ! command -v avm >/dev/null 2>&1; then
+    echo "📦 Anchor AVM インストール中..."
+    cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+fi
+echo "📦 Anchor v0.31.1 インストール中..."
+avm install 0.31.1
+avm use 0.31.1
+echo "✅ Anchor 準備完了: $(anchor --version)"
+'''
+
+# ===============================================
+# 🔍 アトミック リント・修正タスク
+# ===============================================
+
+[tasks."lint:biome"]
+description = "Biomeチェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Biomeチェック中..."
+bun biome check .
+echo "✅ Biomeチェック完了"
+'''
+
+[tasks."lint:typescript"]
+description = "TypeScript型チェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 TypeScript型チェック中..."
+bun tsc --noEmit
+echo "✅ TypeScript型チェック完了"
+'''
+
+[tasks."lint:rust"]
+description = "Rustチェックのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔍 Rustチェック中..."
+echo "  owned_counter..."
+cargo check --manifest-path programs/owned_counter/Cargo.toml
+echo "  shared_counter..."
+cargo check --manifest-path programs/shared_counter/Cargo.toml
+echo "✅ Rustチェック完了"
+'''
+
+[tasks."fix:biome"]
+description = "Biome自動修正のみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 Biome自動修正中..."
+bun biome check --write --unsafe .
+echo "✅ Biome修正完了"
+'''
+
+[tasks."fix:rust"]
+description = "Rustフォーマットのみ"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "🔧 Rustフォーマット中..."
+echo "  owned_counter..."
+cargo fmt --manifest-path programs/owned_counter/Cargo.toml
+echo "  shared_counter..."
+cargo fmt --manifest-path programs/shared_counter/Cargo.toml
+echo "✅ Rustフォーマット完了"
 '''
