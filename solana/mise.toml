@@ -128,7 +128,7 @@ depends = ["lint:biome", "lint:typescript", "lint:rust"]
 [tasks.fix]
 description = "自動修正可能な問題の修正"
 alias = "f"
-depends = ["fix:biome", "fix:rust"]
+depends = ["fix:biome", "fix:rust", "typecheck"]
 
 [tasks.logs]
 description = "バリデータログの表示"
@@ -465,9 +465,8 @@ bun run build
 echo "✅ フロントエンドビルド完了"
 '''
 
-[tasks."ui:typecheck"]
+[tasks.typecheck]
 description = "TypeScript型チェックのみ"
-alias = "typecheck"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail

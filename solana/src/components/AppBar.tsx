@@ -1,7 +1,6 @@
 "use client";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -19,7 +18,7 @@ export function AppBar() {
         throw new Error("Wallet not connected");
       }
 
-      const signature = await connection.requestAirdrop(publicKey, 1 * LAMPORTS_PER_SOL);
+      const signature = await connection.requestAirdrop(publicKey, 1_000_000_000);
 
       await connection.confirmTransaction(signature, "confirmed");
     },

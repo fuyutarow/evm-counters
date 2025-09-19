@@ -18,6 +18,8 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@solana-program/system": "^0.8.0",
+    "@solana/addresses": "^3.0.3",
     "@solana/kit": "latest",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -36,15 +38,16 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
+    "@types/bun": "^1.2.22",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "typescript": "^5.9.2",
-    "tailwindcss": "^4.1.13",
     "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "@biomejs/biome": "^2.2.4",
     "eslint": "^9.36.0",
-    "eslint-config-next": "15.5.3"
+    "eslint-config-next": "15.5.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
   }
 }

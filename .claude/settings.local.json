@@ -71,7 +71,12 @@
       "mcp__serena__write_memory",
       "Bash(m codegen)",
       "Bash(m test:*)",
-      "Bash(m deploy:*)"
+      "Bash(m deploy:*)",
+      "WebFetch(domain:romankurnovskii.com)",
+      "Bash(bun pm ls:*)",
+      "WebFetch(domain:solana.stackexchange.com)",
+      "Bash(rg:*)",
+      "Bash(m t:*)"
     ],
     "deny": [],
     "ask": []

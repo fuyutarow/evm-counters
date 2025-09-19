@@ -113,7 +113,7 @@ depends = ["lint:biome", "lint:typescript", "lint:eslint"]
 [tasks.fix]
 description = "自動修正可能な問題の修正"
 alias = "f"
-depends = ["fix:biome", "fix:eslint"]
+depends = ["fix:biome", "fix:eslint", "typecheck"]
 
 [tasks.preview]
 description = "ビルド済みアプリのプレビュー"

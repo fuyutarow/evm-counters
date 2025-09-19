@@ -32,7 +32,7 @@ export function useCounterValue(counterId?: string, type: "owned" | "shared" = "
           return {
             id: counterId,
             value: account.value.toString(),
-            authority: account.authority.toString(),
+            authority: account.owner.toString(),
             creator: undefined,
             seed: account.seed.toString(),
             type,
@@ -47,7 +47,7 @@ export function useCounterValue(counterId?: string, type: "owned" | "shared" = "
             id: counterId,
             value: account.value.toString(),
             authority: undefined,
-            seed: account.seed.toString(),
+            seed: account.id.toString(),
             type,
           };
         }
@@ -86,8 +86,7 @@ export function useCounter() {
         .create(seedBN)
         .accountsPartial({
           counter: counterPda,
-          authority: publicKey,
-          payer: publicKey,
+          owner: publicKey,
         })
         .rpc();
 
@@ -114,7 +113,7 @@ export function useCounter() {
         .increment()
         .accountsPartial({
           counter: new anchor.web3.PublicKey(counterId),
-          authority: publicKey,
+          owner: publicKey,
         })
         .rpc();
 
@@ -142,7 +141,7 @@ export function useCounter() {
         .setValue(new anchor.BN(params.value))
         .accountsPartial({
           counter: new anchor.web3.PublicKey(params.counterId),
-          authority: publicKey,
+          owner: publicKey,
         })
         .rpc();
 
@@ -176,11 +175,10 @@ export function useCounter() {
       );
 
       const signature = await sharedCounterProgram.methods
-        .create(seedBN)
+        .create()
         .accountsPartial({
           counter: counterPda,
           creator: publicKey,
-          payer: publicKey,
         })
         .rpc();
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
@@ -12,7 +11,7 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'
-  const _network = WalletAdapterNetwork.Devnet;
+  // const network = WalletAdapterNetwork.Devnet;
 
   // Using local test validator
   const endpoint = useMemo(() => {

@@ -13,6 +13,13 @@
       }
     ]
   },
-  "include": ["next.config.mjs", "src", ".next/types/**/*.ts", ".next-dev/types/**/*.ts"],
+  "include": [
+    "next.config.mjs",
+    "src",
+    "tests",
+    "scripts",
+    ".next/types/**/*.ts",
+    ".next-dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules", ".next", ".next-dev", "**/.next/**", "**/.next-dev/**"]
 }

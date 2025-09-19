@@ -7,101 +7,76 @@ describe("owned_counter", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.OwnedCounter as Program<OwnedCounter>;
-  const authority = anchor.web3.Keypair.generate();
+  const owner = anchor.web3.Keypair.generate();
   const otherUser = anchor.web3.Keypair.generate();
+  const counterKeypair = anchor.web3.Keypair.generate();
 
-  // Derive PDA for UserMeta
-  const [userMetaPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("user_meta"), authority.publicKey.toBuffer()],
-    program.programId,
-  );
-
-  // Derive PDA for the first counter (index 0)
-  const index = 0;
-  const indexBuffer = Buffer.alloc(8);
-  indexBuffer.writeBigUInt64LE(BigInt(index), 0);
-  const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("counter"), authority.publicKey.toBuffer(), indexBuffer],
-    program.programId,
-  );
+  const seed = 12345;
 
   beforeAll(async () => {
     // Airdrop SOL to test accounts and wait for confirmation
     const connection = anchor.getProvider().connection;
 
     await connection.confirmTransaction(
-      await connection.requestAirdrop(authority.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
+      await connection.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
     );
     await connection.confirmTransaction(
-      await connection.requestAirdrop(otherUser.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL)
+      await connection.requestAirdrop(otherUser.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL),
     );
   });
 
-  test("Initializes user and creates a new owned counter", async () => {
-    // First initialize the user
+  test("Creates a new owned counter", async () => {
     await program.methods
-      .initializeUser()
-      .accounts({
-        owner: authority.publicKey,
-        userMeta: userMetaPda,
+      .create(new anchor.BN(seed))
+      .accountsPartial({
+        owner: owner.publicKey,
+        counter: counterKeypair.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([authority])
+      .signers([owner, counterKeypair])
       .rpc();
 
-    // Then create the counter
-    await program.methods
-      .create()
-      .accounts({
-        owner: authority.publicKey,
-        userMeta: userMetaPda,
-        counter: counterPda,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([authority])
-      .rpc();
-
-    const counterAccount = await program.account.ownedCounter.fetch(counterPda);
-    expect(counterAccount.owner.toString()).toBe(authority.publicKey.toString());
+    const counterAccount = await program.account.ownedCounter.fetch(counterKeypair.publicKey);
+    expect(counterAccount.owner.toString()).toBe(owner.publicKey.toString());
     expect(counterAccount.value.toString()).toBe("0");
-    expect(counterAccount.index.toString()).toBe("0");
+    expect(counterAccount.seed.toString()).toBe(seed.toString());
   });
 
-  test("Increments counter by authority", async () => {
+  test("Increments counter by owner", async () => {
     await program.methods
-      .increment(new anchor.BN(index))
-      .accounts({
-        counter: counterPda,
-        owner: authority.publicKey,
+      .increment()
+      .accountsPartial({
+        counter: counterKeypair.publicKey,
+        owner: owner.publicKey,
       })
-      .signers([authority])
+      .signers([owner])
       .rpc();
 
-    const counterAccount = await program.account.ownedCounter.fetch(counterPda);
+    const counterAccount = await program.account.ownedCounter.fetch(counterKeypair.publicKey);
     expect(counterAccount.value.toString()).toBe("1");
   });
 
-  test("Sets counter value by authority", async () => {
+  test("Sets counter value by owner", async () => {
     const newValue = new anchor.BN(42);
     await program.methods
-      .setValue(new anchor.BN(index), newValue)
-      .accounts({
-        counter: counterPda,
-        owner: authority.publicKey,
+      .setValue(newValue)
+      .accountsPartial({
+        counter: counterKeypair.publicKey,
+        owner: owner.publicKey,
       })
-      .signers([authority])
+      .signers([owner])
       .rpc();
 
-    const counterAccount = await program.account.ownedCounter.fetch(counterPda);
+    const counterAccount = await program.account.ownedCounter.fetch(counterKeypair.publicKey);
     expect(counterAccount.value.toString()).toBe("42");
   });
 
-  test("Fails when non-authority tries to increment", async () => {
+  test("Fails when non-owner tries to increment", async () => {
     try {
       await program.methods
-        .increment(new anchor.BN(index))
-        .accounts({
-          counter: counterPda,
+        .increment()
+        .accountsPartial({
+          counter: counterKeypair.publicKey,
           owner: otherUser.publicKey,
         })
         .signers([otherUser])
@@ -110,16 +85,16 @@ describe("owned_counter", () => {
       // Should not reach this point
       expect.unreachable("Expected transaction to fail");
     } catch (error) {
-      expect(error.message).toContain("not owner");
+      expect((error as Error).message).toContain("ConstraintHasOne");
     }
   });
 
-  test("Fails when non-authority tries to set value", async () => {
+  test("Fails when non-owner tries to set value", async () => {
     try {
       await program.methods
-        .setValue(new anchor.BN(index), new anchor.BN(999))
-        .accounts({
-          counter: counterPda,
+        .setValue(new anchor.BN(999))
+        .accountsPartial({
+          counter: counterKeypair.publicKey,
           owner: otherUser.publicKey,
         })
         .signers([otherUser])
@@ -128,7 +103,7 @@ describe("owned_counter", () => {
       // Should not reach this point
       expect.unreachable("Expected transaction to fail");
     } catch (error) {
-      expect(error.message).toContain("not owner");
+      expect((error as Error).message).toContain("ConstraintHasOne");
     }
   });
 
@@ -136,49 +111,48 @@ describe("owned_counter", () => {
     // First set to max value - 1
     const maxValue = new anchor.BN("18446744073709551614"); // u64::MAX - 1
     await program.methods
-      .setValue(new anchor.BN(index), maxValue)
-      .accounts({
-        counter: counterPda,
-        owner: authority.publicKey,
+      .setValue(maxValue)
+      .accountsPartial({
+        counter: counterKeypair.publicKey,
+        owner: owner.publicKey,
       })
-      .signers([authority])
+      .signers([owner])
       .rpc();
 
     try {
       // Try to increment which should cause overflow
       await program.methods
-        .increment(new anchor.BN(index))
-        .accounts({
-          counter: counterPda,
-          owner: authority.publicKey,
+        .increment()
+        .accountsPartial({
+          counter: counterKeypair.publicKey,
+          owner: owner.publicKey,
         })
-        .signers([authority])
+        .signers([owner])
         .rpc();
 
       // Should not reach this point
       expect.unreachable("Expected transaction to fail on overflow");
     } catch (error) {
-      expect(error.message).toContain("overflow");
+      expect((error as Error).message).toContain("overflow");
     }
   });
 
-  test("Cannot create counter with same PDA twice", async () => {
+  test("Cannot create counter with same keypair twice", async () => {
     try {
       await program.methods
-        .create()
-        .accounts({
-          owner: authority.publicKey,
-          userMeta: userMetaPda,
-          counter: counterPda,
+        .create(new anchor.BN(seed))
+        .accountsPartial({
+          owner: owner.publicKey,
+          counter: counterKeypair.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
-        .signers([authority])
+        .signers([owner, counterKeypair])
         .rpc();
 
       // Should not reach this point
       expect.unreachable("Expected transaction to fail");
     } catch (error) {
-      expect(error.message).toContain("already in use");
+      expect((error as Error).message).toContain("already in use");
     }
   });
 });
