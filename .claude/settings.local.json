@@ -52,7 +52,17 @@
       "Bash(ANCHOR_LOG=true anchor idl build -p owned_counter -o src/idl/owned_counter.json --no-docs)",
       "Bash(cargo clean:*)",
       "Bash(cat:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Read(//home/fuyu/.cargo/bin/**)",
+      "WebFetch(domain:docs.anza.xyz)",
+      "Bash(anchor:*)",
+      "Read(//home/fuyu/.local/share/solana/install/releases/3.0.2/solana-release/bin/**)",
+      "Bash(~/.local/share/solana/install/active_release/bin/solana-test-validator --version)",
+      "Bash(mise exec:*)",
+      "Bash(pkill:*)",
+      "Read(//home/fuyu/.config/solana/**)",
+      "Bash(cargo build-sbf:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

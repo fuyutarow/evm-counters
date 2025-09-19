@@ -1,6 +1,7 @@
+build.log
+
 # Node / Bun dependencies
 node_modules/
-package-lock.json
 bun.lock
 
 # Next.js build outputs
