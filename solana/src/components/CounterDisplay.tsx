@@ -19,7 +19,7 @@ interface CounterDisplayProps {
   onIncrement: () => Promise<void>;
   onSetValue: (value: number) => Promise<void>;
   error?: Error | null;
-  authority?: string;
+  owner?: string;
   creator?: string;
 }
 
@@ -33,7 +33,7 @@ export function CounterDisplay({
   onIncrement,
   onSetValue,
   error,
-  authority,
+  owner,
   creator,
 }: CounterDisplayProps) {
   const [newValue, setNewValue] = useState("");
@@ -94,10 +94,10 @@ export function CounterDisplay({
             <p className="text-muted-foreground text-sm">Current Value</p>
           </div>
 
-          {/* Authority/Creator Info */}
-          {(authority || creator) && (
+          {/* Owner/Creator Info */}
+          {(owner || creator) && (
             <div className="text-center text-muted-foreground text-sm">
-              {authority && <p>Authority: {formatAddress(authority)}</p>}
+              {owner && <p>Owner: {formatAddress(owner)}</p>}
               {creator && <p>Creator: {formatAddress(creator)}</p>}
             </div>
           )}

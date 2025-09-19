@@ -32,7 +32,7 @@ export function useCounterValue(counterId?: string, type: "owned" | "shared" = "
           return {
             id: counterId,
             value: account.value.toString(),
-            authority: account.owner.toString(),
+            owner: account.owner.toString(),
             creator: undefined,
             seed: account.seed.toString(),
             type,
@@ -46,7 +46,7 @@ export function useCounterValue(counterId?: string, type: "owned" | "shared" = "
           return {
             id: counterId,
             value: account.value.toString(),
-            authority: undefined,
+            owner: undefined,
             seed: account.id.toString(),
             type,
           };
@@ -69,31 +69,29 @@ export function useCounter() {
   // ================== Owned Counter Operations ==================
   const createOwnedCounter = useMutation({
     mutationKey: ["counter", "owned", "create"],
-    mutationFn: async (seed: number): Promise<string> => {
+    mutationFn: async (): Promise<string> => {
       if (!ownedCounterProgram || !publicKey) {
         throw new Error("Program or wallet not available");
       }
 
+      // Generate a random seed and counter keypair
+      const seed = Math.floor(Math.random() * 1000000);
       const seedBN = new anchor.BN(seed);
-
-      // Derive PDA for the counter
-      const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("owned"), publicKey.toBuffer(), seedBN.toArrayLike(Buffer, "le", 8)],
-        ownedCounterProgram.programId,
-      );
+      const counterKeypair = anchor.web3.Keypair.generate();
 
       const signature = await ownedCounterProgram.methods
         .create(seedBN)
         .accountsPartial({
-          counter: counterPda,
+          counter: counterKeypair.publicKey,
           owner: publicKey,
         })
+        .signers([counterKeypair])
         .rpc();
 
       showTxSuccessToast("Owned counter created successfully!", signature);
       await queryClient.invalidateQueries({ queryKey: ["owned-counters"] });
 
-      return counterPda.toString();
+      return counterKeypair.publicKey.toString();
     },
     onError: (error) => {
       toast.error("Failed to create owned counter", {
@@ -161,31 +159,33 @@ export function useCounter() {
   // ================== Shared Counter Operations ==================
   const createSharedCounter = useMutation({
     mutationKey: ["counter", "shared", "create"],
-    mutationFn: async (seed: number): Promise<string> => {
+    mutationFn: async (): Promise<string> => {
       if (!sharedCounterProgram || !publicKey) {
         throw new Error("Program or wallet not available");
       }
 
-      const seedBN = new anchor.BN(seed);
-
-      // Derive PDA for the counter
-      const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("shared"), publicKey.toBuffer(), seedBN.toArrayLike(Buffer, "le", 8)],
+      // Generate counter keypair and get registry PDA
+      const counterKeypair = anchor.web3.Keypair.generate();
+      const [registryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("shared_registry")],
         sharedCounterProgram.programId,
       );
 
       const signature = await sharedCounterProgram.methods
         .create()
         .accountsPartial({
-          counter: counterPda,
+          counter: counterKeypair.publicKey,
           creator: publicKey,
+          payer: publicKey,
+          registry: registryPda,
         })
+        .signers([counterKeypair])
         .rpc();
 
       showTxSuccessToast("Shared counter created successfully!", signature);
       await queryClient.invalidateQueries({ queryKey: ["shared-counters"] });
 
-      return counterPda.toString();
+      return counterKeypair.publicKey.toString();
     },
     onError: (error) => {
       toast.error("Failed to create shared counter", {

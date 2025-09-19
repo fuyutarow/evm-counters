@@ -74,7 +74,7 @@ export function OwnedCounter({ id }: OwnedCounterProps) {
       onIncrement={handleIncrement}
       onSetValue={handleSetValue}
       error={error}
-      {...(data?.authority && { authority: data.authority })}
+      {...(data?.owner && { owner: data.owner })}
     />
   );
 }

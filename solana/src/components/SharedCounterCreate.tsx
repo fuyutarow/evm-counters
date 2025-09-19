@@ -2,32 +2,21 @@
 
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useCounter } from "@/hooks/useCounter";
 import { useProgram } from "@/hooks/useProgram";
 
 export function SharedCounterCreate() {
-  const [seed, setSeed] = useState("");
   const router = useRouter();
   const counter = useCounter();
   const { isConnected } = useProgram();
-  const _seedInputId = useId();
 
   const isCreating = counter.shared.isPending.create;
 
   const handleCreate = async () => {
-    if (!seed.trim()) return;
-
-    const seedNumber = Number.parseInt(seed, 10);
-    if (Number.isNaN(seedNumber) || seedNumber < 0) return;
-
     try {
-      const counterId = await counter.shared.create(seedNumber);
-      setSeed("");
+      const counterId = await counter.shared.create();
       router.push(`/shared-counter/${counterId}`);
     } catch (_error) {}
   };
@@ -54,22 +43,13 @@ export function SharedCounterCreate() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor={_seedInputId}>Seed (Unique ID)</Label>
-          <Input
-            id={_seedInputId}
-            type="number"
-            placeholder="Enter a unique seed number"
-            value={seed}
-            onChange={(e) => setSeed(e.target.value)}
-            disabled={isCreating}
-            min="0"
-          />
           <p className="text-muted-foreground text-sm">
-            Each counter needs a unique seed number to generate its address
+            Create a new shared counter that anyone can interact with. A unique address will be
+            automatically generated.
           </p>
         </div>
 
-        <Button onClick={handleCreate} disabled={isCreating || !seed.trim()} className="w-full">
+        <Button onClick={handleCreate} disabled={isCreating} className="w-full">
           {isCreating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
