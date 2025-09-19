@@ -275,6 +275,56 @@ export function useCounter() {
   };
 }
 
+// ================== List Hooks ==================
+export function useOwnedCountersList() {
+  const { ownedCounterProgram } = useProgram();
+
+  return useQuery({
+    queryKey: ["owned-counters"],
+    queryFn: async () => {
+      if (!ownedCounterProgram) return [];
+
+      try {
+        const accounts = await ownedCounterProgram.account.ownedCounter.all();
+        return accounts.map(({ publicKey, account }) => ({
+          id: publicKey.toString(),
+          value: account.value.toString(),
+          owner: account.owner.toString(),
+          seed: account.seed.toString(),
+          type: "owned" as const,
+        }));
+      } catch (_error) {
+        return [];
+      }
+    },
+    enabled: !!ownedCounterProgram,
+  });
+}
+
+export function useSharedCountersList() {
+  const { sharedCounterProgram } = useProgram();
+
+  return useQuery({
+    queryKey: ["shared-counters"],
+    queryFn: async () => {
+      if (!sharedCounterProgram) return [];
+
+      try {
+        const accounts = await sharedCounterProgram.account.sharedCounter.all();
+        return accounts.map(({ publicKey, account }) => ({
+          id: publicKey.toString(),
+          value: account.value.toString(),
+          seed: account.id.toString(),
+          type: "shared" as const,
+        }));
+      } catch (_error) {
+        return [];
+      }
+    },
+    enabled: !!sharedCounterProgram,
+  });
+}
+
 // ================== Convenience Hooks ==================
 export const useOwnedCounterValue = (counterId?: string) => useCounterValue(counterId, "owned");
 export const useSharedCounterValue = (counterId?: string) => useCounterValue(counterId, "shared");

@@ -1,4 +1,5 @@
 import { OwnedCounterCreate } from "@/components/OwnedCounterCreate";
+import { OwnedCountersList } from "@/components/OwnedCountersList";
 
 export default function OwnedCounterPage() {
   return (
@@ -12,13 +13,7 @@ export default function OwnedCounterPage() {
 
         <OwnedCounterCreate />
 
-        <div className="space-y-4">
-          <h2 className="font-semibold text-2xl">Your Owned Counters</h2>
-          <div className="text-center text-muted-foreground">
-            <p>Create a new counter to get started!</p>
-            <p className="text-sm">Each counter you create will only be manageable by you.</p>
-          </div>
-        </div>
+        <OwnedCountersList />
       </div>
     </div>
   );

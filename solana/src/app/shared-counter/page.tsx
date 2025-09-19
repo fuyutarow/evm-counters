@@ -1,4 +1,5 @@
 import { SharedCounterCreate } from "@/components/SharedCounterCreate";
+import { SharedCountersList } from "@/components/SharedCountersList";
 
 export default function SharedCounterPage() {
   return (
@@ -12,15 +13,7 @@ export default function SharedCounterPage() {
 
         <SharedCounterCreate />
 
-        <div className="space-y-4">
-          <h2 className="font-semibold text-2xl">Shared Counters</h2>
-          <div className="text-center text-muted-foreground">
-            <p>Create a new shared counter to get started!</p>
-            <p className="text-sm">
-              Anyone can increment shared counters, but only the creator can set values.
-            </p>
-          </div>
-        </div>
+        <SharedCountersList />
       </div>
     </div>
   );
