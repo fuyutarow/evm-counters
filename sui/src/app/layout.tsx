@@ -2,7 +2,6 @@ import { type Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { AppBar } from "@/components/AppBar";
-import { WebVitals } from "@/components/WebVitals";
 import { Providers } from "./providers";
 import "./globals.css";
 import "@mysten/dapp-kit/dist/index.css";
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={inter.className}>
-        <WebVitals />
         <Providers>
           <div className="min-h-screen bg-background">
             <AppBar />

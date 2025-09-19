@@ -64,7 +64,8 @@
       "Bash(cargo build-sbf:*)",
       "Bash(test:*)",
       "Bash(mise tasks:*)",
-      "Bash(bun next build:*)"
+      "Bash(bun next build:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

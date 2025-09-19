@@ -1,7 +1,6 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { ArrowRight, Lock, Package } from "lucide-react";
 import Link from "next/link";
 
@@ -10,12 +9,6 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="font-bold text-3xl">Solana Counters</h1>
-        <WalletMultiButton />
-      </div>
-
       <div className="mx-auto max-w-6xl rounded-lg bg-muted/50">
         {!publicKey ? (
           <div className="flex h-64 items-center justify-center">
