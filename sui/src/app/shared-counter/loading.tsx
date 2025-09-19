@@ -1,4 +1,4 @@
-import ClipLoader from "react-spinners/ClipLoader";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Loading() {
@@ -27,7 +27,7 @@ export default function Loading() {
         <div className="space-y-4">
           <h2 className="font-semibold text-2xl">Your Shared Counters</h2>
           <div className="flex justify-center py-8">
-            <ClipLoader size={32} />
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         </div>
       </div>

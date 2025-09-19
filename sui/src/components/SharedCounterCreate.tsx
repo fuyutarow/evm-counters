@@ -1,7 +1,7 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import ClipLoader from "react-spinners/ClipLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCounter } from "@/hooks/useCounter";
@@ -35,7 +35,14 @@ export function SharedCounterCreate({ onSuccess }: { onSuccess?: () => void }) {
             disabled={isCreatingShared}
             className="w-full"
           >
-            {isCreatingShared ? <ClipLoader size={20} /> : "Create Shared Counter"}
+            {isCreatingShared ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Shared Counter"
+            )}
           </Button>
         </CardContent>
       </Card>

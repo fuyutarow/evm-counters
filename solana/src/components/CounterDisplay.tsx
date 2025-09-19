@@ -3,7 +3,6 @@
 import { ExternalLink, Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,10 +81,8 @@ export function CounterDisplay({
     <div className="flex justify-center pt-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            {title}
-            <Badge variant="outline">{formatAddress(id)}</Badge>
-          </CardTitle>
+          <CardTitle className="text-center">{title}</CardTitle>
+          <p className="text-center text-muted-foreground text-sm">ID: {formatAddress(id)}</p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Counter Value Display */}

@@ -1,7 +1,7 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import ClipLoader from "react-spinners/ClipLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCounter } from "@/hooks/useCounter";
@@ -35,7 +35,14 @@ export function OwnedCounterCreate({ onSuccess }: { onSuccess?: () => void }) {
             disabled={isCreatingOwned}
             className="w-full"
           >
-            {isCreatingOwned ? <ClipLoader size={20} /> : "Create Owned Counter"}
+            {isCreatingOwned ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Owned Counter"
+            )}
           </Button>
         </CardContent>
       </Card>
